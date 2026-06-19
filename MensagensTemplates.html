@@ -1,0 +1,150 @@
+<script>
+// BANCO DE MENSAGENS (TEMPLATES DINÂMICOS)
+// Use as tags {{VARIAVEL}} para que o sistema substitua pelos dados.
+
+window.DB_MENSAGENS = {
+    "checklist_padrao": {
+        titulo: "🏥 Checklist Padrão (Admissão)",
+        mensagens: [
+            `Somos a equipe de admissão de pacientes de convênios e particulares do Hospital de Clínicas de Porto Alegre.
+
+Seguem algumas informações importantes sobre o seu procedimento:
+
+* 🕙 Jejum - Siga a orientação do seu médico/consultório.
+
+Estacionamento no hospital: O funcionamento do estacionamento é 24 horas e é cobrado.
+
+* 🆔 Documentos do paciente:
+1- Documento de Identificação (RG, CNH, Carteira de Trabalho, Passaporte, etc...)
+2- Número do CPF
+3- Carteira do convênio (se for atendimento por convênio) dentro da validade
+4- Exames prévios (quando solicitado pelo médico)
+
+* 👨‍👦 Paciente, OBRIGATORIAMENTE, deverá ser acompanhado por APENAS 01 (uma) pessoa maior de 18 anos que esteja portando documento de identidade e CPF.
+
+* 💍 Evite trazer objetos de valor como: anéis, alianças, brincos, relógios, eletrônicos, etc...
+
+* 🌎 Local da Admissão: Rua Ramiro Barcelos, 2350 - Portaria Central do Bloco A.
+
+* ➡️ Este canal é apenas para envio de informações aos pacientes.
+
+* 🤔 Dúvidas? E-mail 📧 internacaoconvenios@hcpa.edu.br ou telefone ☎️ 3359-8088.
+
+Desejamos a você um ótimo procedimento e uma breve recuperação!`,
+            
+            `*NOME PACIENTE:* {{PACIENTE}}
+
+*DATA E HORÁRIO DO PROCEDIMENTO:* {{DATA_PROC}} - {{HORA_PROC}}
+
+*DATA E HORÁRIO DA CHEGADA AO HOSPITAL:* {{DATA_CHEGADA}} - {{HORA_CHEGADA}}
+
+*Estamos aguardando autorização do seu procedimento. Ofereceremos uma declaração de ciência caso a autorização não ocorra até o momento. Se houver negativa, o procedimento ficará em caráter particular.*
+
+Favor confirmar recebimento.`
+        ]
+    },
+
+    "autoriza": {
+        titulo: "💰 AUTORIZA (Completo)",
+        mensagens: [
+            `Meu contato é sobre o procedimento que está marcado para *{{PACIENTE}}* no dia *{{DATA_PROC}}*.
+
+O médico solicitou para o procedimento um material que não possui cobertura pelo IPE e deverá ser pago de forma particular.
+
+O valor total é de R$ [INSERIR VALOR] e pode ser pago no dia da admissão.
+
+Podemos liberar esse material para o procedimento?
+
+*Formas de pagamento:*
+
+* *Guia de Recolhimento de Receitas da União (GRU Cobrança)*, para pagamento na rede bancária, nas lotéricas e nos caixas da Tesouraria do HCPA.
+_(ESSA FORMA DE PAGAMENTO DEVE SER SOLICITADA COM 72 HORAS DE ANTECEDÊNCIA EM RELAÇÃO À DATA DE INTERNAÇÃO)_
+
+* *Dinheiro* (em reais), com pagamento nos caixas da Tesouraria do HCPA.
+
+* *Transferência eletrônica (PagTesouro)*, com pagamento nos caixas da Tesouraria do HCPA. Pode ser feita:
+– via *PIX* (será cobrado apenas o valor do HCPA, sem acréscimo de taxas)
+ou
+– por *cartão de crédito* (será cobrado o valor do HCPA, a tarifa da prestadora do serviço de pagamento (2,79%¹) e o percentual da taxa de juros, caso haja parcelamento do valor). *(Necessário habilitar compras online)*
+
+¹Taxa referencial do mês janeiro/2026 (Mercado Pago), com valor fixado externamente, sem gerência de teto pelo HCPA e sujeita a alterações sem prévio aviso.
+
+*Importante:* o recebimento de pagamentos por meio de cartão de débito, de depósito em conta bancária ou de cheques fica extinto.
+
+A mudança na forma de recebimento dos valores de taxas e serviços prestados pelo HCPA cumpre a determinação da Secretaria do Tesouro Nacional (DECRETO Nº 10.494, DE 23 DE SETEMBRO DE 2020).
+
+Dúvidas sobre as formas de pagamento, por favor, contatar nossa admissão pelo telefone 3359-8088.`
+        ]
+    },
+
+   // --- NOVAS MENSAGENS ADICIONADAS ---
+
+    "msg2_plano_pendente": {
+        titulo: "⏳ Plano Pendente (Declaração Ciência)",
+        mensagens: [
+            `*Estamos aguardando autorização do seu procedimento, ofereceremos uma declaração de ciência de que esse está pendente, caso a autorização pelo plano de saúde não ocorrer até o momento da liberação. Ocorrendo negativa o procedimento ficará em caráter particular. Favor entrar em contato 24h prévias ao procedimento, telefone 33598088, para verificar o status da autorização.*
+
+*POR GENTILEZA, CONFIRMAR RECEBIMENTO DA MENSAGEM*`
+        ]
+    },
+
+    "msg3_portal_ok": {
+        titulo: "✅ Portal Autorizado (Aguardando Setor)",
+        mensagens: [
+            `*Procedimento autorizado no portal do seu plano, aguardando confirmação do nosso setor de autorizações*
+
+*POR GENTILEZA, CONFIRMAR RECEBIMENTO DA MENSAGEM*`
+        ]
+    },
+
+    "msg4_mais_unimed": {
+        titulo: "🟩 Mais Unimed",
+        mensagens: [
+            `*Falta autorização do procedimento. Solicitaremos autorização no momento da liberação via portal: maisunimed*
+
+*POR GENTILEZA, CONFIRMAR RECEBIMENTO DA MENSAGEM*`
+        ]
+    },
+
+    "msg5_pagamento_extra": {
+        titulo: "💲 Pagamento (Orientações Valores)",
+        mensagens: [
+            `ORIENTAÇÕES QUANTO A VALORES E FORMAS DE PAGAMENTO
+
+*SERÁ COBRADO, NA CHEGADA AO HOSPITAL, O VALOR DE R$ [INSERIR VALOR] REFERENTE AO ORÇAMENTO SOLICITADO PELA EQUIPE MÉDICA.*
+
+*FORMAS DE PAGAMENTO:* DINHEIRO, PIX OU CARTÃO DE CRÉDITO (No cartão de crédito, será cobrado o valor do HCPA, a tarifa da prestadora do serviço de pagamento (2,99%) e o percentual da taxa de juros, caso haja parcelamento do valor).
+
+*PARA PAGAMENTOS VIA PIX OU CARTÃO DE CRÉDITO:* Favor verificar com seu banco o limite liberado para uso diário. *IMPORTANTE*: O pagamento, via cartão de crédito, terá incidência de juros*. *PAGAMENTO NO CARTÃO DE CRÉDITO: NECESSÁRIO HABILITAR COMPRAS ONLINE*
+
+*IMPORTANTE:* Não aceitamos o recebimento de pagamentos por meio de cartão de débito, de depósito em conta bancária ou de cheques conforme DECRETO No 10.494, DE 23 DE SETEMBRO DE 2020 da Secretaria do Tesouro Nacional.
+
+*PAGAMENTOS VIA BOLETO BANCÁRIO:* Solicitar com 72 horas de antecedência à data do procedimento/internação.*
+
+*INFORMAÇÕES IMPORTANTES*:
+*Os valores apresentados constituem uma estimativa de gastos e estão sujeitos à alteração em virtude de possíveis intercorrências, tempo cirúrgico, exames, materiais e medicamentos utilizados e não previstos neste orçamento, podendo gerar cobrança adicional.
+*Os honorários da equipe médica devem ser acertados diretamente com estes profissionais sem envolvimento do HCPA.*
+
+*POR GENTILEZA, CONFIRMAR RECEBIMENTO DA MENSAGEM*`
+        ]
+    },
+
+    "msg6_falta_opme": {
+        titulo: "🔩 Falta OPME",
+        mensagens: [
+            `*Falta autorização de um código de opme. Estamos no aguardo da mesma. Ofereceremos uma declaração de ciência de que esse está pendente, caso da autorização não ocorrer até o momento da liberação e se ocorrer negativa o procedimento ficará em caráter particular. Favor entrar em contato 24h prévias ao procedimento, telefone 33598088, para verificar o status da autorização.*
+
+*POR GENTILEZA, CONFIRMAR RECEBIMENTO DA MENSAGEM*`
+        ]
+    },
+
+    "msg7_ipe_urgencia": {
+        titulo: "🚨 IPE Urgência",
+        mensagens: [
+            `*Procedimento ainda não está autorizado pelo seu convênio, será solicitado em caráter de urgência, verificar junto ao médico assistente, se a data do agendamento será mantida. Ofereceremos uma declaração de ciência de que esse está pendente e que em caso de negativa o procedimento ficará em caráter particular.*
+
+*POR GENTILEZA, CONFIRMAR RECEBIMENTO DA MENSAGEM*`
+        ]
+    }
+};
+</script>
