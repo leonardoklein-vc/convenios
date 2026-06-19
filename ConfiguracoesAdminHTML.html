@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* === ESTILOS GERAIS === */
+    * { box-sizing: border-box; }
+
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background: #f4f5f7; 
+        color: #172b4d; 
+        padding: 0; 
+        margin: 0; 
+        /* Permite rolagem se necessário, sem forçar altura fixa */
+        min-height: 100vh; 
+        display: flex; 
+        flex-direction: column; 
+    }
+    
+    /* Header (Só aparece nas sub-seções) */
+    .header { 
+        background: white; 
+        border-bottom: 1px solid #dfe1e6; 
+        padding: 15px 30px; 
+        display: none; /* Escondido por padrão */
+        align-items: center; 
+        justify-content: space-between; 
+        position: sticky; 
+        top: 0; 
+        z-index: 100;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .header h2 { margin: 0; font-size: 18px; color: #0052cc; display: flex; align-items: center; gap: 10px; }
+    
+    .btn-back { background: none; border: none; font-size: 14px; color: #5e6c84; cursor: pointer; font-weight: 600; display:flex; align-items:center; gap: 5px; }
+    .btn-back:hover { color: #0052cc; }
+
+    .content-area { 
+        flex: 1; 
+        padding: 40px; 
+        overflow-y: auto; 
+    }
+
+    /* === DASHBOARD LAYOUT (GRID 3x3) === */
+    
+    .dashboard-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Grid com espaçamento explícito */
+    .dashboard-grid { 
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); /* 3 colunas iguais */
+        gap: 30px; /* Espaço horizontal e vertical entre cards */
+        padding: 10px; 
+    }
+
+    /* CARD */
+    .dash-card {
+        background: white; 
+        border-radius: 12px; 
+        border: 1px solid #ebecf0; 
+        padding: 30px 20px; 
+        text-align: center; 
+        cursor: pointer; 
+        transition: all 0.2s ease; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+        
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; 
+        
+        min-height: 200px; /* Altura fixa mínima boa */
+        margin-bottom: 0; /* O gap do grid cuida disso */
+    }
+    
+    .dash-card:hover { 
+        transform: translateY(-5px); 
+        box-shadow: 0 8px 16px rgba(0,0,50,0.1); 
+        border-color: #0052cc; 
+    }
+    
+    .dash-icon { 
+        font-size: 42px; 
+        margin-bottom: 20px; 
+        display: block; 
+    } 
+    
+    /* Cores dos Ícones */
+    .icon-data { color: #00875a; }   
+    .icon-perm { color: #ff991f; }   
+    .icon-color { color: #6554c0; }  
+    .icon-link { color: #0052cc; }   
+    .icon-chart { color: #de350b; }  
+    .icon-add { color: #0052cc; }    
+    
+    .card-title { font-size: 16px; font-weight: 700; color: #172b4d; margin-bottom: 8px; display: block; }
+    .card-desc { font-size: 13px; color: #6b778c; line-height: 1.4; }
+
+    /* === SEÇÕES INTERNAS === */
+    .section-panel { 
+        display: none; 
+        background: white; 
+        padding: 40px; 
+        border-radius: 12px; 
+        border: 1px solid #dfe1e6; 
+        max-width: 900px; 
+        margin: 0 auto; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .section-panel.active { display: block; animation: slideUp 0.3s ease-out; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* === INPUTS E FORMULÁRIOS === */
+    .form-group { margin-bottom: 25px; }
+    label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #42526e; }
+    
+    select, input[type="text"], input[type="email"], input[type="number"] { 
+        width: 100%; 
+        padding: 12px 15px; 
+        border: 2px solid #ebecf0; 
+        border-radius: 6px; 
+        box-sizing: border-box; 
+        font-size: 15px; 
+        background: #fafbfc;
+        transition: border-color 0.2s;
+    }
+    select:focus, input:focus { border-color: #0052cc; outline: none; background: #fff; }
+    
+    .btn { padding: 12px 24px; border-radius: 6px; font-weight: 600; border: none; cursor: pointer; font-size: 15px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; justify-content: center;}
+    .btn-primary { background: #0052cc; color: white; }
+    .btn-primary:hover { background: #0065ff; transform: translateY(-1px); }
+    .btn-success { background: #00875a; color: white; }
+    .btn-success:hover { background: #006644; transform: translateY(-1px); }
+    
+    .tabs { display: flex; border-bottom: 2px solid #ebecf0; margin-bottom: 30px; }
+    .tab { padding: 15px 25px; cursor: pointer; font-weight: 600; color: #5e6c84; border-bottom: 3px solid transparent; margin-bottom: -2px; font-size: 14px; transition: color 0.2s; }
+    .tab:hover { color: #0052cc; }
+    .tab.active { color: #0052cc; border-bottom-color: #0052cc; }
+    
+    .perm-list { max-height: 400px; overflow-y: auto; border: 1px solid #ebecf0; border-radius: 6px; margin-top: 20px; background: #fafbfc; }
+    .perm-item { display: flex; justify-content: space-between; padding: 15px 20px; border-bottom: 1px solid #ebecf0; font-size: 14px; align-items: center; }
+    .perm-item:last-child { border-bottom: none; }
+    .perm-item:hover { background: white; }
+    .btn-rm { color: #de350b; background: none; border: none; cursor: pointer; font-weight: bold; font-size: 18px; padding: 5px 10px; border-radius: 4px; }
+    .btn-rm:hover { background: #ffebe6; }
+
+    .color-row { display: flex; align-items: center; justify-content: space-between; padding: 25px; border: 1px solid #ebecf0; margin-bottom: 15px; border-radius: 8px; background: #fff; }
+    input[type="color"] { border: none; width: 60px; height: 40px; cursor: pointer; background: none; padding: 0; min-height: unset; }
+    
+    /* Loading Spinner */
+    .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:9999; display:none; flex-direction:column; align-items:center; justify-content:center; }
+  </style>
+</head>
+<body>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <i class="fas fa-circle-notch fa-spin" style="font-size:60px; color:#0052cc; margin-bottom:25px;"></i>
+    <div id="loadingText" style="font-size: 18px; font-weight:600; color:#172b4d;">Processando...</div>
+  </div>
+
+  <div class="header" id="mainHeader">
+    <button class="btn-back" onclick="goHome()">
+      <i class="fas fa-arrow-left"></i> Voltar ao Painel
+    </button>
+    <h2 id="pageTitle"></h2>
+    <div style="width:120px;"></div> 
+  </div>
+
+  <div class="content-area">
+    
+    <div id="dashboard-wrapper" class="dashboard-wrapper">
+        
+        <div class="dashboard-grid">
+          
+          <div class="dash-card" onclick="openSection('view-dados', 'Adicionar Dados')">
+            <i class="fas fa-database dash-icon icon-data"></i>
+            <span class="card-title">Adicionar Dados</span>
+            <span class="card-desc">Cadastre médicos, convênios, materiais e equipamentos na base.</span>
+          </div>
+
+          <div class="dash-card" onclick="openSection('view-perms', 'Permissões de Acesso')">
+            <i class="fas fa-users-cog dash-icon icon-perm"></i>
+            <span class="card-title">Permissões</span>
+            <span class="card-desc">Gerencie os níveis de acesso: Leitor, Guichê e Admin.</span>
+          </div>
+
+          <div class="dash-card" onclick="openSection('view-cores', 'Cores & Tema')">
+            <i class="fas fa-palette dash-icon icon-color"></i>
+            <span class="card-title">Cores & Tema</span>
+            <span class="card-desc">Personalize as cores e o visual da agenda diária.</span>
+          </div>
+
+          <div class="dash-card" onclick="openSection('view-add-days', 'Adicionar Dias na Agenda')">
+            <i class="fas fa-calendar-plus dash-icon icon-add"></i>
+            <span class="card-title">Adicionar Dias</span>
+            <span class="card-desc">Gere automaticamente novas abas baseadas no padrão externo.</span>
+          </div>
+
+          <div class="dash-card" onclick="window.open('https://sites.google.com/hcpa.edu.br/agendamentoconvenios-consulta/in%C3%ADcio', '_blank')">
+            <i class="fas fa-book-medical dash-icon icon-link"></i>
+            <span class="card-title">Site de Consulta</span>
+            <span class="card-desc">Acesso rápido ao site oficial do Guia de Equipamentos.</span>
+          </div>
+
+          <div class="dash-card" onclick="window.open('https://docs.google.com/spreadsheets/d/10u3xcFlOtESIHGkR74lPpJ6fkj6zh3MS-mDVvJdIjp0/edit#gid=1253742872', '_blank')">
+            <i class="fas fa-chart-pie dash-icon icon-chart"></i>
+            <span class="card-title">Indicadores</span>
+            <span class="card-desc">Acesse o dashboard analítico de performance.</span>
+          </div>
+
+        </div>
+
+    </div>
+
+    <div id="view-dados" class="section-panel">
+      <div style="background: #e3fcef; padding: 20px; border-radius: 8px; margin-bottom: 25px; font-size: 14px; color: #006644; border: 1px solid #b3d4ff; display:flex; gap:10px; align-items:center;">
+        <i class="fas fa-info-circle" style="font-size:20px;"></i>
+        <div>Os dados inseridos aqui serão adicionados à primeira linha vazia da coluna correspondente na <b>Planilha Base</b>.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de Informação</label>
+        <select id="dataType">
+          <option value="equipe">Equipe / Cirurgião (Col F)</option>
+          <option value="anestesista">Anestesista (Col F)</option>
+          <option value="convenio">Convênio (Col E)</option>
+          <option value="procedimento">Procedimento (Col A)</option>
+          <option value="equipamento">Equipamento (Col B)</option>
+          <option value="material">Material (Col C)</option>
+          <option value="exame">Exame (Col D)</option>
+          <option value="origem">Origem (Col G)</option>
+          <option value="lateralidade">Lateralidade (Col H)</option>
+          <option value="ia">I/A (Col I)</option>
+          <option value="marcacao">Marcação (Col J)</option>
+          <option value="status">Status (Col K)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Nome / Descrição (Capitalizado Automaticamente)</label>
+        <input type="text" id="dataValue" placeholder="Digite o novo item...">
+      </div>
+
+      <div style="text-align: right; margin-top: 30px;">
+        <button class="btn btn-success" id="btnSaveData" onclick="salvarNovoDado()">
+          <i class="fas fa-plus-circle"></i> Adicionar à Base
+        </button>
+      </div>
+    </div>
+
+    <div id="view-perms" class="section-panel">
+      <div class="tabs">
+        <div class="tab active" onclick="switchPermTab('leitores', this)">Leitores</div>
+        <div class="tab" onclick="switchPermTab('guiche', this)">Guichê</div>
+        <div class="tab" onclick="switchPermTab('autorizacao', this)">Autorização</div>
+        <div class="tab" onclick="switchPermTab('admin', this)">Admin</div>
+      </div>
+
+      <div id="perm-container">
+        <p class="desc" id="perm-desc" style="font-size:14px; color:#666; margin-bottom:15px; min-height:20px;">...</p>
+        <div style="display:flex; gap:15px;">
+          <input type="email" id="input-perm" placeholder="email@hcpa.edu.br" style="flex:1;">
+          <button class="btn btn-primary" onclick="addPerm()">Adicionar</button>
+        </div>
+        <div class="perm-list" id="list-perm-render"></div>
+      </div>
+
+      <div style="text-align: right; margin-top: 30px; border-top:1px solid #eee; padding-top:20px;">
+        <button class="btn btn-success" id="btnSavePerms" onclick="salvarPermissoes()">💾 Salvar Alterações</button>
+      </div>
+    </div>
+
+    <div id="view-cores" class="section-panel">
+      <div class="color-row">
+        <div>
+          <label style="margin:0; font-size:16px;">Cor Principal</label>
+          <span style="font-size:13px; color:#666;">Cor de fundo dos cards padrão (ex: Roxo Claro)</span>
+        </div>
+        <input type="color" id="corPrincipal">
+      </div>
+
+      <div class="color-row">
+        <div>
+          <label style="margin:0; font-size:16px;">Cor de Contraste (Backup)</label>
+          <span style="font-size:13px; color:#666;">Usado para diferenciar linhas sequenciais.</span>
+        </div>
+        <input type="color" id="corBackup">
+      </div>
+
+      <div style="text-align: right; margin-top: 40px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:14px; text-decoration:underline; cursor:pointer; color:#666;" onclick="restaurarCores()">Restaurar Padrão</span>
+        <button class="btn btn-success" id="btnSaveCores" onclick="salvarCores()">💾 Salvar Cores</button>
+      </div>
+    </div>
+
+    <div id="view-add-days" class="section-panel">
+      <div style="background: #e9f2ff; padding: 25px; border-radius: 8px; margin-bottom: 30px; font-size: 15px; color: #0052cc; border: 1px solid #b3d4ff; line-height: 1.6;">
+        <h4 style="margin-top:0; margin-bottom:10px; font-size:18px;">📅 Gerador Automático de Guias</h4>
+        <p style="margin:0;">Esta ferramenta analisa a última guia existente nesta planilha (ex: SEXTA 10/04), calcula as próximas datas e importa os modelos corretos (SEGUNDA, TERÇA...) da planilha padrão externa.</p>
+      </div>
+
+      <div id="infoUltimaData" style="margin-bottom: 30px; padding: 20px; border: 2px dashed #dfe1e6; border-radius: 8px; text-align: center; color: #5e6c84; font-weight: 600; font-size: 16px; background: #fafbfc;">
+        <i class="fas fa-spinner fa-spin"></i> Verificando última data...
+      </div>
+
+      <div class="form-group">
+        <label>Quantos dias deseja adicionar?</label>
+        <input type="number" id="qtdDias" min="1" max="30" value="7" placeholder="Ex: 7">
+        <span style="font-size:13px; color:#666; margin-top: 8px; display: block;">
+            <i class="fas fa-lightbulb" style="color:#ff991f;"></i> Recomendamos gerar <b>7 ou 14 dias</b> por vez para evitar lentidão.
+        </span>
+      </div>
+
+      <div style="text-align: right; margin-top: 40px;">
+        <button class="btn btn-success" id="btnGerarDias" onclick="gerarNovosDias()" style="width: 100%;">
+          <i class="fas fa-magic"></i> Gerar Guias Agora
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- VARIÁVEIS GLOBAIS ---
+    var dadosPermissoes = JSON.parse(<?= dadosIniciais ?>);
+    var dadosCores = JSON.parse(<?= cores ?>);
+    var abaPermAtual = 'leitores';
+
+    // --- INICIALIZAÇÃO ---
+    window.onload = function() {
+      // Setup Cores
+      if (dadosCores.principal) document.getElementById('corPrincipal').value = dadosCores.principal;
+      if (dadosCores.backup) document.getElementById('corBackup').value = dadosCores.backup;
+      
+      // Setup Permissões
+      renderPermList();
+      updatePermDesc();
+    };
+
+    // --- NAVEGAÇÃO SPA ---
+    function goHome() {
+      document.querySelectorAll('.section-panel').forEach(el => el.classList.remove('active'));
+      document.getElementById('dashboard-wrapper').style.display = 'block';
+      document.getElementById('mainHeader').style.display = 'none';
+    }
+
+    function openSection(id, title) {
+      document.getElementById('dashboard-wrapper').style.display = 'none';
+      document.querySelectorAll('.section-panel').forEach(el => el.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.getElementById('mainHeader').style.display = 'flex';
+      document.getElementById('pageTitle').innerText = title;
+
+      if (id === 'view-add-days') {
+          carregarInfoUltimaData();
+      }
+    }
+
+    function showLoading(txt) {
+       document.getElementById('loadingText').innerText = txt || "Processando...";
+       document.getElementById('loadingOverlay').style.display = 'flex';
+    }
+    
+    function hideLoading() {
+       document.getElementById('loadingOverlay').style.display = 'none';
+    }
+
+    // --- LÓGICA: ADICIONAR DADOS ---
+    function salvarNovoDado() {
+      var tipo = document.getElementById('dataType').value;
+      var valorRaw = document.getElementById('dataValue').value.trim();
+      var btn = document.getElementById('btnSaveData');
+
+      if(!valorRaw) return alert("Digite um valor!");
+
+      // ALTERADO: Formatação para Capitalizar Primeira Letra de Cada Palavra (Title Case)
+      // Ex: "fio de sutura" vira "Fio De Sutura"
+      var valor = valorRaw.toLowerCase().replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+
+      var origTxt = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+      btn.disabled = true;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+           btn.innerHTML = origTxt;
+           btn.disabled = false;
+           if(res === "Sucesso") {
+             alert("✅ Item cadastrado com sucesso!");
+             document.getElementById('dataValue').value = ""; // Limpa
+           } else {
+             alert("❌ " + res);
+           }
+        })
+        .withFailureHandler(function(err){
+           btn.innerHTML = origTxt;
+           btn.disabled = false;
+           alert("Erro: " + err);
+        })
+        .salvarItemNaBaseExterna({tipo: tipo, valor: valor});
+    }
+
+    // --- LÓGICA: ADICIONAR DIAS ---
+    function carregarInfoUltimaData() {
+        var el = document.getElementById('infoUltimaData');
+        el.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando última guia...';
+        
+        google.script.run.withSuccessHandler(function(dataStr){
+            el.innerHTML = '📅 Última data encontrada: <b style="color:#172b4d; font-size:18px;">' + dataStr + '</b>';
+        }).obterUltimaDataFormatada();
+    }
+
+    function gerarNovosDias() {
+        var qtd = document.getElementById('qtdDias').value;
+        if (!qtd || qtd < 1) return alert("Selecione pelo menos 1 dia.");
+        
+        var confirmacao = confirm("Deseja criar " + qtd + " novas abas a partir da última data encontrada?\nIsso pode levar alguns segundos.");
+        if (!confirmacao) return;
+
+        showLoading("Criando abas e copiando modelos...");
+        
+        google.script.run
+          .withSuccessHandler(function(res) {
+              hideLoading();
+              if (res.success) {
+                  alert("✅ Sucesso!\n" + res.msg);
+                  carregarInfoUltimaData(); // Atualiza
+              } else {
+                  alert("❌ Erro: " + res.msg);
+              }
+          })
+          .withFailureHandler(function(err) {
+              hideLoading();
+              alert("Erro crítico: " + err);
+          })
+          .adicionarNovosDias(parseInt(qtd));
+    }
+
+    // --- LÓGICA: PERMISSÕES ---
+    function switchPermTab(type, el) {
+      abaPermAtual = type;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      renderPermList();
+      updatePermDesc();
+    }
+
+    function updatePermDesc() {
+      var desc = "";
+      if(abaPermAtual === 'leitores') desc = "👀 Apenas visualizam. Não alteram nada.";
+      if(abaPermAtual === 'guiche') desc = "🏢 Editam Check 1, Check 2 e Status Guichê.";
+      if(abaPermAtual === 'autorizacao') desc = "📝 Editam Info Técnica e Status AUT.";
+      if(abaPermAtual === 'admin') desc = "⚡ Acesso total ao sistema e configurações.";
+      document.getElementById('perm-desc').innerText = desc;
+    }
+
+    function renderPermList() {
+      var container = document.getElementById('list-perm-render');
+      container.innerHTML = '';
+      var lista = dadosPermissoes[abaPermAtual] || [];
+      
+      lista.forEach((email, idx) => {
+        var div = document.createElement('div');
+        div.className = 'perm-item';
+        div.innerHTML = `<span>${email}</span> <button class="btn-rm" onclick="removePerm(${idx})">&times;</button>`;
+        container.appendChild(div);
+      });
+    }
+
+    function addPerm() {
+      var inp = document.getElementById('input-perm');
+      var val = inp.value.trim().toLowerCase();
+      if(!val || val.indexOf('@') === -1) return alert("Email inválido");
+      
+      var existe = false;
+      ['leitores','guiche','autorizacao','admin'].forEach(k => {
+         if(dadosPermissoes[k].includes(val)) existe = true;
+      });
+      
+      if(existe) return alert("Email já existe em algum grupo. Remova antes.");
+      
+      dadosPermissoes[abaPermAtual].push(val);
+      dadosPermissoes[abaPermAtual].sort();
+      inp.value = '';
+      renderPermList();
+    }
+
+    function removePerm(idx) {
+      dadosPermissoes[abaPermAtual].splice(idx, 1);
+      renderPermList();
+    }
+
+    function salvarPermissoes() {
+      var btn = document.getElementById('btnSavePerms');
+      btn.innerText = "Salvando...";
+      btn.disabled = true;
+      
+      google.script.run.withSuccessHandler(function() {
+        alert("Permissões atualizadas com sucesso!");
+        btn.innerText = "💾 Salvar Alterações";
+        btn.disabled = false;
+      }).salvarNovasPermissoes(dadosPermissoes);
+    }
+
+    // --- LÓGICA: CORES ---
+    function restaurarCores() {
+      document.getElementById('corPrincipal').value = "#d9d2e9";
+      document.getElementById('corBackup').value = "#b4a7d6";
+    }
+
+    function salvarCores() {
+      var btn = document.getElementById('btnSaveCores');
+      btn.innerText = "Salvando...";
+      btn.disabled = true;
+      
+      var novasCores = {
+        corPrincipal: document.getElementById('corPrincipal').value,
+        corBackup: document.getElementById('corBackup').value
+      };
+
+      google.script.run.withSuccessHandler(function() {
+        alert("Cores salvas! Recarregue a página principal para ver as mudanças.");
+        btn.innerText = "💾 Salvar Cores";
+        btn.disabled = false;
+      }).salvarPreferenciasCores(novasCores);
+    }
+
+  </script>
+</body>
+</html>
