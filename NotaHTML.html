@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Inter', sans-serif; padding: 15px; color: #172b4d; background-color: #f4f5f7; }
+      
+      label { font-weight: 600; display: block; margin-bottom: 5px; font-size: 13px; }
+      
+      textarea { 
+        width: 100%; height: 100px; margin-bottom: 15px; 
+        border: 1px solid #dfe1e6; border-radius: 4px; padding: 10px; 
+        box-sizing: border-box; font-family: 'Inter', sans-serif; resize: none;
+      }
+      textarea:focus { outline: none; border-color: #0052cc; }
+
+      select { 
+        width: 100%; padding: 8px; margin-bottom: 20px; 
+        border-radius: 4px; border: 1px solid #dfe1e6; background: white; cursor: pointer;
+      }
+
+      button { 
+        width: 100%; background: #0052cc; color: white; border: none; 
+        padding: 10px; border-radius: 4px; font-weight: 600; cursor: pointer; 
+        transition: background 0.2s;
+      }
+      button:hover { background: #0065ff; }
+      button:disabled { background: #b3d4ff; cursor: not-allowed; }
+
+      .loading { text-align: center; color: #666; font-size: 12px; margin-top: 10px; display: none; }
+    </style>
+  </head>
+  <body>
+    <form id="notaForm" onsubmit="enviar(event)">
+      <label for="texto">📝 Conteúdo da Nota:</label>
+      <textarea id="texto" name="texto" placeholder="Digite sua observação..." required></textarea>
+      
+      <label for="cor">🎨 Cor do Destaque:</label>
+      <select id="cor" name="cor">
+        <option value="#ffff00">🟡 Amarelo (Atenção)</option>
+        <option value="#ffab00">🟠 Amarelo/Laranja (Pendente)</option>
+        <option value="#36b37e">🟢 Verde (Autorizado)</option>
+        <option value="#ff5630">🔴 Vermelho (Negado)</option>
+        <option value="#6554c0">🟣 Roxo (Urgente)</option>
+        <option value="#ff8b00">🟧 Laranja (Internado)</option>
+        <option value="#ffffff">⚪ Branco (Sem cor)</option>
+      </select>
+
+      <button type="submit" id="btnSalvar">Salvar Nota</button>
+      <div class="loading" id="msgLoad">Salvando...</div>
+    </form>
+
+    <script>
+      function enviar(e) {
+        e.preventDefault();
+        
+        var btn = document.getElementById('btnSalvar');
+        var load = document.getElementById('msgLoad');
+        var texto = document.getElementById('texto').value;
+        var cor = document.getElementById('cor').value;
+
+        btn.disabled = true;
+        btn.innerText = 'Processando...';
+        load.style.display = 'block';
+
+        google.script.run
+          .withSuccessHandler(function() {
+             google.script.host.close();
+          })
+          .withFailureHandler(function(err) {
+             alert("Erro: " + err.message);
+             btn.disabled = false;
+             btn.innerText = 'Salvar Nota';
+             load.style.display = 'none';
+          })
+          .salvarNotaECor(texto, cor);
+      }
+    </script>
+  </body>
+</html>
