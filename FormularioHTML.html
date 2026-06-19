@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <style>
+    /* === ESTILOS GERAIS === */
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      margin: 0;
+      padding: 0; 
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding-bottom: 80px;
+    }
+    
+    /* MENSAGENS */
+    #statusMessage {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%;
+      background-color: #36b37e;
+      color: white;
+      text-align: center;
+      padding: 12px;
+      font-weight: 600;
+      z-index: 9999;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    #errorMessage {
+        display: none;
+        background-color: #de350b;
+        color: white;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        font-weight: 500;
+    }
+    
+    /* TELA DE SUCESSO LATERAL */
+    #successScreen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+      height: 100vh;
+      box-sizing: border-box;
+      background: #f8f9fa;
+    }
+    #successScreen h3 {
+      color: #0052cc;
+      margin-top: 10px;
+    }
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+    .btn-block {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 12px;
+    }
+
+    h2 {
+      font-size: 16px;
+      color: #0052cc;
+      margin-top: 20px;
+      border-bottom: 1px solid #dfe1e6;
+      padding-bottom: 8px;
+      margin-bottom: 15px;
+    }
+
+    /* GRID LAYOUT */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .col-1 { grid-column: span 1; }
+    .col-2 { grid-column: span 2; }
+    .col-3 { grid-column: span 3; }
+    .col-4 { grid-column: span 4; }
+
+    /* --- RESPONSIVIDADE SIDEBAR --- */
+    @media (max-width: 500px) {
+      .grid { grid-template-columns: 1fr !important; gap: 10px; }
+      .col-1, .col-2, .col-3, .col-4 { grid-column: span 1 !important; }
+      .footer { flex-direction: column; gap: 8px; padding: 10px; }
+      .footer button { width: 100%; }
+      label { font-size: 11px; }
+      input, select { font-size: 13px; }
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #5e6c84;
+      margin-bottom: 4px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #dfe1e6;
+      border-radius: 4px;
+      font-size: 14px;
+      background: #fff;
+      box-sizing: border-box;
+    }
+    
+    input:focus, select:focus {
+      border-color: #4c9aff;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.2);
+    }
+
+    .highlight-section {
+      background-color: #e9f2ff;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #b3d4ff;
+      margin-bottom: 15px;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 0; left: 0; width: 100%;
+      background: #fff;
+      border-top: 1px solid #dfe1e6;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+      z-index: 100;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-cancel { background: #ebecf0; color: #42526e; }
+    .btn-save { background: #0052cc; color: white; }
+    .btn-save:hover { background: #0065ff; }
+    .btn-save:disabled { background: #ccc; cursor: not-allowed; }
+
+    .select2-container .select2-selection--single { height: 36px !important; border: 1px solid #dfe1e6; }
+    .select2-selection__rendered { line-height: 36px !important; }
+    .select2-container--default .select2-selection--multiple { border-color: #dfe1e6; }
+  </style>
+</head>
+<body>
+
+  <div id="statusMessage">✅ Salvo com sucesso!</div>
+
+  <div id="successScreen">
+    <div class="success-icon">🎉</div>
+    <h3>Agendamento Realizado!</h3>
+    <p style="color:#666; margin-bottom:30px;">O que deseja fazer agora?</p>
+    
+    <button class="btn-save btn-block" onclick="fazerOutro()">➕ Fazer Outro Agendamento</button>
+    <button class="btn-cancel btn-block" onclick="google.script.host.close()">🚪 Sair</button>
+  </div>
+
+  <form id="agendamentoForm">
+    <div class="container">
+      
+      <div id="errorMessage"></div>
+
+      <div class="highlight-section grid">
+        <div class="col-4">
+            <label style="font-size:13px; color:#0052cc;">📍 Dados do Horário</label>
+        </div>
+        
+        <div class="col-1">
+            <label>Sala</label>
+            <select id="salaSelect" required><option value="">Carregando...</option></select>
+        </div>
+        <div class="col-1">
+            <label>Horário</label>
+            <select id="horaSelect" disabled required><option value="">Selecione sala...</option></select>
+            <input type="hidden" id="linhaInicial" name="linhaInicial">
+        </div>
+        <div class="col-2">
+            <label>Duração</label>
+            <select id="duracao" required>
+                <option value="30">30min (1 bloco)</option>
+                <option value="60" selected>1h (2 blocos)</option>
+                <option value="90">1h 30min (3 blocos)</option>
+                <option value="120">2h (4 blocos)</option>
+                <option value="150">2h 30min (5 blocos)</option>
+                <option value="180">3h (6 blocos)</option>
+                <option value="210">3h 30min (7 blocos)</option>
+                <option value="240">4h (8 blocos)</option>
+                <option value="300">5h (10 blocos)</option>
+            </select>
+        </div>
+      </div>
+
+      <h2>Paciente</h2>
+      <div class="grid">
+        <div class="col-3">
+          <label>Nome Completo</label>
+          <input type="text" id="paciente" required placeholder="Nome">
+        </div>
+        <div class="col-1">
+          <label>Nascimento</label>
+          <input type="text" id="nascimento" placeholder="dd/mm/aaaa">
+        </div>
+
+        <div class="col-2">
+          <label>Convênio</label>
+          <select id="convenio" class="select2"></select>
+        </div>
+        <div class="col-1">
+            <label>Matrícula</label>
+            <input type="text" id="matricula">
+        </div>
+         <div class="col-1">
+            <label>Telefone</label>
+            <input type="text" id="telefone">
+        </div>
+      </div>
+
+      <h2>Cirurgia</h2>
+      <div class="grid">
+        <div class="col-2">
+            <label>Equipe</label>
+            <select id="equipe" class="select2" required></select>
+        </div>
+        <div class="col-1">
+             <label>Dr(a) / Anest.</label>
+             <input type="text" id="anestesista">
+        </div>
+        <div class="col-1">
+             <label>Origem</label>
+             <select id="origem" class="select2"></select>
+        </div>
+
+        <div class="col-4">
+            <label>Procedimentos</label>
+            <select id="procedimentos" multiple class="select2"></select>
+        </div>
+
+        <div class="col-1">
+            <label>Lado</label>
+            <select id="lado" class="select2"></select>
+        </div>
+        <div class="col-1">
+            <label>CID</label>
+            <input type="text" id="cid" placeholder="Ex: K80">
+        </div>
+        <div class="col-1">
+            <label>I/A</label>
+            <select id="ia" class="select2"></select>
+        </div>
+        <div class="col-1">
+            <label>Quem Marcou?</label>
+            <select id="marcadoPor" class="select2"></select>
+        </div>
+
+        <div class="col-4">
+            <label>Materiais</label>
+            <select id="materiais" multiple class="select2"></select>
+        </div>
+        <div class="col-4">
+             <label>Equipamentos</label>
+             <select id="equipamentos" multiple class="select2"></select>
+        </div>
+        <div class="col-4">
+             <label>Exames</label>
+             <select id="exames" multiple class="select2"></select>
+        </div>
+        
+        <div class="col-4">
+            <label>OPME</label>
+            <select id="opme" class="select2"></select>
+        </div>
+
+        <div class="col-1">
+            <label>Status</label>
+            <select id="status" class="select2"></select>
+        </div>
+        
+        <div class="col-1">
+            <label>CTI?</label>
+            <select id="cti" class="select2">
+                <option value=""></option>
+                <option value="NÃO">NÃO</option>
+                <option value="SIM">SIM</option>
+            </select>
+        </div>
+
+        <div class="col-2">
+            <label>Outras Infos</label>
+            <input type="text" id="outrasInfo">
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <button type="button" class="btn-cancel" onclick="google.script.host.close()">Cancelar</button>
+      <button type="submit" class="btn-save" id="btnSalvar">💾 Salvar</button>
+    </div>
+  </form>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <script>
+    var dadosIniciais = JSON.parse('<?= dadosIniciais ?>');
+    var disponibilidade = dadosIniciais.disponibilidade || {};
+    var modo = dadosIniciais.modo || 'modal';
+
+    $(document).ready(function() {
+        $('.select2').select2({ width: '100%', placeholder: "...", allowClear: true });
+
+        function preencherSelect(id, arrayDados) {
+            var sel = $('#' + id);
+            sel.append(new Option("", "")); 
+            if(arrayDados) {
+                arrayDados.forEach(function(item) { sel.append(new Option(item, item)); });
+            }
+            sel.val(null).trigger('change');
+        }
+
+        preencherSelect('convenio', dadosIniciais.listas.convenios);
+        preencherSelect('equipe', dadosIniciais.listas.equipes);
+        preencherSelect('origem', dadosIniciais.listas.origens);
+        preencherSelect('procedimentos', dadosIniciais.listas.procedimentos);
+        preencherSelect('lado', dadosIniciais.listas.lados);
+        preencherSelect('ia', dadosIniciais.listas.ias);
+        preencherSelect('marcadoPor', dadosIniciais.listas.marcacoes);
+        preencherSelect('materiais', dadosIniciais.listas.materiais);
+        preencherSelect('equipamentos', dadosIniciais.listas.equipamentos);
+        preencherSelect('exames', dadosIniciais.listas.exames);
+        preencherSelect('status', dadosIniciais.listas.status);
+        preencherSelect('opme', dadosIniciais.listas.opme);
+
+        var salaSelect = $('#salaSelect');
+        salaSelect.empty().append('<option value="">Selecione...</option>');
+        
+        Object.keys(disponibilidade).forEach(function(sala) {
+            salaSelect.append(new Option(sala, sala));
+        });
+
+        salaSelect.on('change', function() {
+            var salaEscolhida = $(this).val();
+            var horaSelect = $('#horaSelect');
+            horaSelect.empty().append('<option value="">Selecione...</option>');
+            
+            if (salaEscolhida && disponibilidade[salaEscolhida]) {
+                horaSelect.prop('disabled', false);
+                disponibilidade[salaEscolhida].forEach(function(item) {
+                    horaSelect.append(new Option(item.hora, item.linha));
+                });
+            } else {
+                horaSelect.prop('disabled', true);
+            }
+        });
+
+        $('#horaSelect').on('change', function() {
+            $('#linhaInicial').val($(this).val());
+        });
+
+        $('#agendamentoForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            var btn = $('#btnSalvar');
+            var originalText = btn.text();
+            $('#errorMessage').hide();
+            btn.prop('disabled', true).text('...');
+
+            var formData = {
+                guia: dadosIniciais.guia,
+                linhaInicial: $('#linhaInicial').val(),
+                duracao: $('#duracao').val(),
+                paciente: $('#paciente').val(),
+                nascimento: $('#nascimento').val(),
+                convenio: $('#convenio').val(),
+                matricula: $('#matricula').val(),
+                telefone: $('#telefone').val(),
+                equipe: $('#equipe').val(),
+                anestesista: $('#anestesista').val(),
+                origem: $('#origem').val(),
+                procedimentos: $('#procedimentos').val(), 
+                lado: $('#lado').val(),
+                cid: $('#cid').val(), 
+                ia: $('#ia').val(),
+                marcadoPor: $('#marcadoPor').val(),
+                materiais: $('#materiais').val(), 
+                equipamentos: $('#equipamentos').val(), 
+                exames: $('#exames').val(), 
+                opme: $('#opme').val(),
+                status: $('#status').val(),
+                outrasInfo: $('#outrasInfo').val(),
+                cti: $('#cti').val(), // Garante captura do CTI
+                agenda: '', motivo: '', revisao: '', aut: ''
+            };
+
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    if(res.success) {
+                        if (modo === 'lateral') {
+                            // COMPORTAMENTO LATERAL
+                            $('#agendamentoForm').hide();
+                            $('#successScreen').fadeIn();
+                        } else {
+                            // COMPORTAMENTO MODAL
+                            $('#statusMessage').slideDown();
+                            setTimeout(function(){ google.script.host.close(); }, 1500);
+                        }
+                    } else {
+                        $('#errorMessage').text(res.message).show();
+                        btn.prop('disabled', false).text(originalText);
+                    }
+                })
+                .withFailureHandler(function(err) {
+                    $('#errorMessage').text('Erro: ' + err.message).show();
+                    btn.prop('disabled', false).text(originalText);
+                })
+                .processFormData(formData);
+        });
+    });
+
+    function fazerOutro() {
+        google.script.run.abrirFormularioLateral();
+    }
+  </script>
+</body>
+</html>
