@@ -1,0 +1,308 @@
+<style>
+  /* === ESTILOS GERAIS DA AJUDA === */
+  .help-container { 
+    font-family: 'Inter', sans-serif; 
+    color: #172b4d; 
+    background-color: #fff;
+    padding-bottom: 20px;
+  }
+
+  /* Acordeão (Tópicos) */
+  .help-topic { 
+    border: 1px solid #dfe1e6; 
+    border-radius: 8px; 
+    margin-bottom: 15px; 
+    overflow: hidden; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+  .help-header { 
+    background: #fafbfc; 
+    padding: 16px 20px; 
+    cursor: pointer; 
+    font-weight: 700; 
+    color: #0052cc;
+    font-size: 14px;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    transition: background 0.2s;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+  }
+  .help-header:hover { background: #ebecf0; }
+  
+  /* Conteúdo Interno */
+  .help-content { 
+    display: none; 
+    padding: 25px; 
+    background: white; 
+    border-top: 1px solid #dfe1e6; 
+    line-height: 1.6; 
+    font-size: 13px; 
+    color: #42526e;
+  }
+
+  /* Subtítulos */
+  .help-h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #6b778c;
+      font-weight: 800;
+      margin-bottom: 12px;
+      margin-top: 20px;
+      border-bottom: 2px solid #f4f5f7;
+      padding-bottom: 5px;
+      letter-spacing: 0.5px;
+  }
+  .help-h3:first-child { margin-top: 0; }
+
+  /* --- ELEMENTOS VISUAIS (DEMOS) --- */
+  
+  /* Layout de Exemplo de Card */
+  .demo-card-layout {
+      border: 1px solid #ebecf0;
+      border-radius: 6px;
+      padding: 15px;
+      background: #fff;
+      position: relative;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .demo-annotation {
+      position: relative;
+      padding-left: 15px;
+      margin-bottom: 8px;
+      border-left: 3px solid #0052cc;
+      color: #172b4d;
+  }
+  .demo-annotation span { font-weight: bold; color: #0052cc; }
+
+  /* Barras de Status */
+  .status-row { display: flex; align-items: center; margin-bottom: 8px; gap: 10px; }
+  .color-box { width: 8px; height: 24px; border-radius: 4px; flex-shrink: 0; }
+  
+  /* Tags e Badges */
+  .demo-tag { 
+      padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; 
+      display: inline-block; vertical-align: middle; margin-right: 6px; border: 1px solid transparent;
+  }
+  
+  /* Bolinhas e Círculos */
+  .demo-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 8px; border: 1px solid transparent; }
+  .demo-circle {
+      width: 22px; height: 22px; border-radius: 50%; 
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: bold; color: white; margin-right: 8px;
+  }
+
+  /* Grid de Explicação */
+  .help-grid { 
+      display: grid; 
+      grid-template-columns: repeat(2, 1fr); 
+      gap: 12px; 
+  }
+  .help-item {
+      background: #f7f8f9;
+      padding: 10px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      border: 1px solid #ebecf0;
+  }
+
+  /* CORES FIÉIS AO SISTEMA */
+  .bg-blue { background: #0052cc; color:white; }
+  .bg-purple { background: #403294; color:white; }
+  .bg-grey { background: #ccc; color:#fff; }
+  .bg-dark { background: #42526e; color:white; }
+  .bg-yellow { background: #ffab00; color: #172b4d; }
+  .bg-green { background: #36b37e; color:white; }
+  .bg-red { background: #ea4335; color:white; }
+  
+  /* Tags Específicas */
+  .t-ante { background: #fffae6; color: #bf2600; border-color: #ffe082; } /* ANTE */
+  .t-vesp { background: #fffae6; color: #bf2600; border-color: #ffe082; } /* VESP */
+  .t-ambu { background: #e3fcef; color: #006644; border-color: #abf5d1; }
+  .t-dia  { background: #fff0b3; color: #172b4d; border-color: #ffab00; }
+  .t-inter { background: #ffebe6; color: #de350b; border-color: #ffbdad; }
+  .t-clin { background: #e6fcff; color: #008da6; border-color: #b3f5ff; }
+  
+  /* Lateralidade */
+  .t-lat-d { background: #fffae6; color: #b76e00; border-color: #ffe082; }
+  .t-lat-e { background: #e9f2ff; color: #0052cc; border-color: #b3d4ff; }
+  .t-lat-b { background: #eae6ff; color: #403294; border-color: #c0b6f2; }
+
+  /* OPME */
+  .t-opme { background: white; color: #7f8c8d; border-color: #bdc3c7; }
+  .t-opme-ok { background: #f39c12; color: white; border-color: #e67e22; font-weight:800; }
+
+  /* Ícones */
+  i { margin-right: 5px; }
+  .icon-help { color: #0052cc; width: 20px; text-align: center; display: inline-block; }
+
+</style>
+
+<div class="help-container">
+
+  <div class="help-topic">
+    <div class="help-header" onclick="toggleHelp(this)">
+        <span><i class="fas fa-layer-group icon-help"></i> 1. Anatomia do Card (O que é o quê?)</span>
+        <i class="fas fa-chevron-down"></i>
+    </div>
+    <div class="help-content">
+      <div class="help-h3">Cabeçalho (Topo)</div>
+      <div class="demo-card-layout" style="background: #fafbfc; display:flex; align-items:center; justify-content:space-between; padding:10px;">
+         <div style="display:flex; align-items:center; gap:6px;">
+            <span class="demo-tag bg-blue" style="font-size:12px;">06</span>
+            <span style="font-weight:600; font-size:12px;">SALA 06 BC ROBÔ</span>
+         </div>
+         <div style="display:flex; align-items:center; gap:6px;">
+            <span class="demo-dot bg-green"></span>
+            <span style="font-size:12px; color:#5e6c84;"><i class="far fa-clock"></i> 07:30</span>
+            <span class="demo-tag bg-green">61</span>
+            <span class="demo-circle bg-green">A</span>
+         </div>
+      </div>
+      
+      <div class="demo-annotation"><span>Tag Azul (06):</span> Número da Sala destacado para rápida visualização.</div>
+      <div class="demo-annotation"><span>Bolinha (Guichê):</span> Status de recepção do paciente.</div>
+      <div class="demo-annotation"><span>Horário:</span> Hora de início da cirurgia.</div>
+      <div class="demo-annotation"><span>Tag Verde (61):</span> Identificador da Agenda (se houver).</div>
+      <div class="demo-annotation"><span>Círculo (A):</span> Status da Autorização (AUT).</div>
+
+      <div class="help-h3">Corpo (Dados do Paciente)</div>
+      <div class="demo-card-layout">
+         <div style="font-weight:700; font-size:14px; color:#172b4d; margin-bottom:5px;">Fulano de Tal <i class="far fa-copy"></i></div>
+         <div style="font-size:11px; color:#666; margin-bottom:10px;">Colecistectomia Videolaparoscópica...</div>
+         <div style="background:#f0f2f5; border:1px solid #dfe1e6; border-radius:6px; padding:8px;">
+            <div style="margin-bottom:5px; color:#403294; font-weight:700; font-size:12px;"><i class="fas fa-user-md"></i> Equipe Cirúrgica A</div>
+            <div style="display:flex; gap:4px;">
+               <span class="demo-tag t-vesp">ANTE</span>
+               <span class="demo-tag t-opme-ok">OPME</span>
+               <span class="demo-tag t-lat-d">D</span>
+               <span class="demo-tag" style="border:1px solid #ccc;">Unimed</span>
+            </div>
+         </div>
+      </div>
+      <div class="demo-annotation"><span>Nome:</span> Clique no ícone de cópia para copiar o nome.</div>
+      <div class="demo-annotation"><span>Procedimento:</span> Descrição abreviada da cirurgia.</div>
+      <div class="demo-annotation"><span>Área Cinza (Tags):</span> Agrupa todas as informações técnicas (Equipe, I/A, OPME, Lado, Convênio).</div>
+    </div>
+  </div>
+
+  <div class="help-topic">
+    <div class="help-header" onclick="toggleHelp(this)">
+        <span><i class="fas fa-tags icon-help"></i> 2. Dicionário de Tags e Siglas</span>
+        <i class="fas fa-chevron-down"></i>
+    </div>
+    <div class="help-content">
+      
+      <div class="help-h3">I/A - Internação e Admissão</div>
+      <p>Indica o regime de entrada do paciente no hospital:</p>
+      <div class="help-grid">
+        <div class="help-item"><span class="demo-tag t-ante">ANTE</span> <b>Internação Antecipada:</b> 02 dias antes da cirurgia.</div>
+        <div class="help-item"><span class="demo-tag t-vesp">Vesp</span> <b>Véspera:</b> Interna no dia anterior à cirurgia.</div>
+        <div class="help-item"><span class="demo-tag t-ambu">Ambu</span> <b>Ambulatorial:</b> Alta prevista para o mesmo dia.</div>
+        <div class="help-item"><span class="demo-tag t-dia">Dia</span> <b>Dia:</b> Interna no mesmo dia da cirurgia.</div>
+        <div class="help-item"><span class="demo-tag t-inter">Inter</span> <b>Internado:</b> Paciente já se encontra no leito.</div>
+        <div class="help-item"><span class="demo-tag t-clin">Clin</span> <b>Clínico:</b> Internação clínica.</div>
+      </div>
+
+      <div class="help-h3">OPME - Órteses, Próteses e Materiais Especiais</div>
+      <p>Indica se há material especial envolvido. <b>Dica:</b> Dê duplo clique na tag para alternar.</p>
+      <div class="help-grid">
+        <div class="help-item"><span class="demo-tag t-opme">OPME</span> <b>Solicitado:</b> Pedido feito, mas não confirmado. (Letra normal)</div>
+        <div class="help-item"><span class="demo-tag t-opme-ok">OPME</span> <b>Confirmado:</b> Material conferido e garantido. (Laranja + Negrito)</div>
+      </div>
+
+      <div class="help-h3">Lateralidade (Lado da Cirurgia)</div>
+      <div class="help-grid">
+        <div class="help-item"><span class="demo-tag t-lat-d">D</span> Direita</div>
+        <div class="help-item"><span class="demo-tag t-lat-e">E</span> Esquerda</div>
+        <div class="help-item"><span class="demo-tag t-lat-b">B</span> Bilateral</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="help-topic">
+    <div class="help-header" onclick="toggleHelp(this)">
+        <span><i class="fas fa-tasks icon-help"></i> 3. Gestão: Guichê, AUT e Status</span>
+        <i class="fas fa-chevron-down"></i>
+    </div>
+    <div class="help-content">
+      
+      <div class="help-h3">1. Barra Lateral Colorida (Status Geral)</div>
+      <div class="status-row"><div class="color-box bg-grey"></div> <div><b>Cinza:</b> Agendado (Estado padrão).</div></div>
+      <div class="status-row"><div class="color-box bg-purple"></div> <div><b>Roxo (Confirmado):</b> Equipe e Sala validados.</div></div>
+      <div class="status-row"><div class="color-box bg-blue"></div> <div><b>Azul (Realizado):</b> Cirurgia finalizada.</div></div>
+      <div class="status-row"><div class="color-box bg-dark"></div> <div><b>Escuro (Cancelado):</b> Procedimento suspenso.</div></div>
+
+      <div class="help-h3">2. Status do Guichê (Bolinha)</div>
+      <p>Localizado no topo do card. Serve para controle de recepção (Check-in).</p>
+      <div class="help-grid">
+        <div class="help-item"><span class="demo-dot bg-grey" style="border:1px solid #ccc;"></span> <b>Vazio:</b> Nenhuma verificação feita.</div>
+        <div class="help-item"><span class="demo-dot bg-green"></span> <b>OK:</b> Check-in completo e sem pendências.</div>
+        <div class="help-item"><span class="demo-dot bg-yellow"></span> <b>Atenção:</b> Pendência de documentos ou exames.</div>
+        <div class="help-item"><span class="demo-dot bg-red"></span> <b>Erro:</b> Impedimento crítico na recepção.</div>
+      </div>
+
+      <div class="help-h3">3. Autorização (Círculo AUT)</div>
+      <p>Indica a situação junto ao convênio. <b>Duplo clique</b> para alterar.</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+         <span class="demo-circle bg-green">A</span> Autorizado
+         <span class="demo-circle bg-yellow">P</span> Pendente
+         <span class="demo-circle bg-red">N</span> Negado
+         <span class="demo-circle" style="background:#ff8b00;">I</span> Internado
+         <span class="demo-circle" style="background:#6554c0;">U</span> Urgente
+      </div>
+    </div>
+  </div>
+
+  <div class="help-topic">
+    <div class="help-header" onclick="toggleHelp(this)">
+        <span><i class="fas fa-file-medical-alt icon-help"></i> 4. Visão Detalhada (Modal)</span>
+        <i class="fas fa-chevron-down"></i>
+    </div>
+    <div class="help-content">
+      <p>Ao clicar no botão <b>VER DETALHES</b>, você acessa a ficha completa.</p>
+      
+      <div class="help-h3">Área de Recepção (Acordeão Amarelo)</div>
+      <p>Esta área é <b>editável</b> e serve para anotações rápidas do guichê.</p>
+      <ul>
+        <li><b>Check 1 (Email/AA):</b> Campo para registrar email ou dados de contato.</li>
+        <li><b>Check 2 (Obs/AB):</b> Observações gerais de atendimento.</li>
+      </ul>
+
+      <div class="help-h3">Informações Técnicas</div>
+      <ul>
+        <li><b>Dados do Paciente:</b> Telefone, Matrícula (copiável), Nascimento.</li>
+        <li><b>Info Técnica (Editável):</b> Campo especial para a enfermagem/anestesia inserir observações sobre materiais, alergias ou necessidades de sala. Clique no texto para editar.</li>
+        <li><b>Recursos:</b> Lista completa de Instrumentais, Equipamentos e Exames solicitados no formulário.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="help-topic">
+    <div class="help-header" onclick="toggleHelp(this)">
+        <span><i class="fas fa-mouse-pointer icon-help"></i> 5. Ações (Agendar e Mover)</span>
+        <i class="fas fa-chevron-down"></i>
+    </div>
+    <div class="help-content">
+      <p><b>➕ Novo Agendamento:</b><br>
+      Use o botão azul no topo direito. O formulário pedirá Sala, Horário e Duração. O sistema valida automaticamente se o horário está livre.</p>
+
+      <p><b>🔄 Reagendar (Botão Amarelo):</b><br>
+      Para trocar um paciente de dia, sala ou horário:</p>
+      <ol style="margin-left: 20px;">
+        <li>Clique no ícone <i class="fas fa-exchange-alt" style="color:#ffab00;"></i> no rodapé do card.</li>
+        <li>Selecione a <b>Data de Destino</b>.</li>
+        <li>Selecione a nova Sala (o sistema só mostra as que têm vaga).</li>
+        <li>Defina o novo Horário.</li>
+        <li>Confirme. O paciente será removido do dia atual e criado no novo dia.</li>
+      </ol>
+      <p style="font-size:12px; color:#bf2600;">* Atenção: Ao reagendar, o status original do paciente pode ser alterado para "Remarcado".</p>
+    </div>
+  </div>
+
+</div>
