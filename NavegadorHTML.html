@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8f9fa;
+      padding: 15px;
+      color: #333;
+      overflow-x: hidden; /* Evita rolagem lateral */
+    }
+    
+    h3 {
+      margin-top: 0;
+      color: #0052cc;
+      font-size: 16px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    /* Container do Filtro + Botão Windows */
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+
+    input {
+      flex-grow: 1; /* Ocupa o espaço restante */
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 14px;
+      height: 42px; /* Altura igual ao botão */
+    }
+
+    /* Botão Estilo Windows */
+    .btn-windows {
+      width: 42px;
+      height: 42px;
+      background-color: #0052cc;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+      flex-shrink: 0; /* Não encolhe */
+    }
+    
+    .btn-windows:hover {
+      background-color: #0065ff;
+    }
+
+    .btn-windows svg {
+      fill: white;
+      width: 20px;
+      height: 20px;
+    }
+
+    .lista-guias {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    button.nav-item {
+      background-color: white;
+      border: 1px solid #dfe1e6;
+      padding: 10px;
+      text-align: left;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #172b4d;
+      transition: all 0.2s;
+    }
+    button.nav-item:hover {
+      background-color: #deebff;
+      border-color: #b3d4ff;
+      color: #0052cc;
+    }
+    button.nav-item:active {
+      background-color: #b3d4ff;
+    }
+    
+    /* ESTILO ESPECIAL PARA CANCELADAS */
+    button.btn-cancelar {
+      color: #d32f2f; /* Vermelho */
+      border-color: #ffcdd2;
+      background-color: #ffebee;
+      font-weight: 600;
+    }
+    button.btn-cancelar:hover {
+      background-color: #ffcdd2;
+      color: #b71c1c;
+    }
+
+    .loading {
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h3>📂 Navegador de Datas</h3>
+  
+  <!-- BARRA DE AÇÃO: Filtro + Botão Agendar -->
+  <div class="search-bar">
+    <input type="text" id="busca" placeholder="🔎 Filtrar data..." onkeyup="filtrar()">
+    
+    <!-- Botão com Ícone Windows para Agendar na Lateral -->
+    <button class="btn-windows" title="Novo Agendamento (Nesta Janela)" onclick="google.script.run.abrirFormularioLateral()">
+      <!-- Ícone SVG estilo Windows (4 quadrados) -->
+      <svg viewBox="0 0 24 24">
+        <path d="M3,3H11V11H3V3M13,3H21V11H13V3M3,13H11V21H3V13M13,13H21V21H13V13Z" />
+      </svg>
+    </button>
+  </div>
+  
+  <div id="container" class="lista-guias">
+    <div class="loading">Carregando datas...</div>
+  </div>
+
+  <script>
+    var todasGuias = [];
+
+    // Ao carregar, busca as guias
+    google.script.run.withSuccessHandler(popularLista).obterListaGuias();
+
+    function popularLista(guias) {
+      todasGuias = guias;
+      renderizar(guias);
+    }
+
+    function renderizar(lista) {
+      var div = document.getElementById('container');
+      div.innerHTML = "";
+      
+      if (lista.length === 0) {
+        div.innerHTML = "<div class='loading'>Nenhuma data encontrada.</div>";
+        return;
+      }
+
+      lista.forEach(function(nome) {
+        var btn = document.createElement('button');
+        btn.className = "nav-item"; // Classe padrão
+        
+        // LÓGICA ESPECIAL: Se conter "CANCEL", aplica estilo vermelho
+        if (nome.toUpperCase().indexOf('CANCEL') > -1) {
+           btn.textContent = "🚫 " + nome;
+           btn.classList.add("btn-cancelar");
+        } else {
+           btn.textContent = "📅 " + nome;
+        }
+        
+        btn.onclick = function() { ir(nome); };
+        div.appendChild(btn);
+      });
+    }
+
+    function filtrar() {
+      var termo = document.getElementById('busca').value.toLowerCase();
+      var filtradas = todasGuias.filter(function(nome) {
+        return nome.toLowerCase().indexOf(termo) > -1;
+      });
+      renderizar(filtradas);
+    }
+
+    function ir(nome) {
+      google.script.run.irParaGuia(nome);
+    }
+  </script>
+</body>
+</html>
