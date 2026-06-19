@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* VARIÁVEIS E BASE */
+    :root {
+      --primary: #0052cc;
+      --primary-hover: #0065ff;
+      --success: #36b37e;
+      --danger: #de350b;
+      --warning: #ffab00;
+      --bg-page: #f4f5f7;
+      --bg-card: #ffffff;
+      --border: #dfe1e6;
+      --text-main: #172b4d;
+      --text-muted: #5e6c84;
+    }
+
+    body { font-family: 'Inter', sans-serif; padding: 0; margin: 0; color: var(--text-main); background: var(--bg-page); display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
+    
+    /* CABEÇALHO DA PÁGINA E TABS */
+    .header-container { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 20px 20px 0 20px; flex-shrink: 0; }
+    .header-title { font-size: 20px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; margin: 0 0 15px 0; }
+    
+    .tabs { display: flex; gap: 20px; }
+    .tab-btn { background: none; border: none; padding: 10px 5px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; outline: none; }
+    .tab-btn:hover { color: var(--primary); }
+    .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+
+    /* CONTEÚDO DAS TABS */
+    .tab-content { display: none; flex: 1; overflow-y: auto; padding: 20px; flex-direction: column; gap: 15px; }
+    .tab-content.active { display: flex; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* CARDS (Painéis de Separação) */
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .card-header { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .card-subtitle { font-size: 11px; color: var(--text-muted); font-weight: 400; margin: -5px 0 15px 24px; }
+
+    /* SEÇÃO DE E-MAILS (GRID 2x2) */
+    .email-accordion summary { font-size: 14px; font-weight: 700; color: var(--text-main); cursor: pointer; outline: none; list-style: none; display: flex; align-items: center; gap: 8px; }
+    .email-accordion summary::-webkit-details-marker { display: none; }
+    .email-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+    .email-box { display: flex; flex-direction: column; gap: 5px; }
+    .email-box label { font-size: 12px; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; }
+    .badge-count { background: #e9f2ff; color: var(--primary); padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; }
+    .email-box textarea { width: 100%; height: 75px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; font-family: monospace; resize: none; box-sizing: border-box; white-space: pre; background: #fafbfc; transition: border 0.2s; }
+    .email-box textarea:focus { border-color: var(--primary); outline: none; background: #fff; }
+
+    /* CONTROLES E LISTA DE ABAS */
+    .controls { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+    .search-box { position: relative; flex: 1; }
+    .search-box input { width: 100%; padding: 10px 10px 10px 35px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-size: 13px; transition: border 0.2s; }
+    .search-box input:focus { border-color: var(--primary); outline: none; }
+    .search-icon { position: absolute; left: 12px; top: 12px; color: #a5adba; }
+    
+    .btn-sm { padding: 8px 12px; background: #ebecf0; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; gap: 5px; }
+    .btn-sm:hover { background: #dfe1e6; color: var(--primary); }
+
+    .list-container { flex: 1; min-height: 180px; max-height: 250px; background: white; border: 1px solid var(--border); border-radius: 6px; overflow-y: auto; padding: 5px 0; }
+    .list-item { display: flex; align-items: center; padding: 8px 15px; border-bottom: 1px solid #f4f5f7; font-size: 13px; transition: background 0.1s; }
+    .list-item:last-child { border-bottom: none; }
+    .list-item:hover { background-color: #f0f2f5; }
+    .list-item label { margin-left: 10px; cursor: pointer; flex: 1; user-select: none; font-weight: 500; }
+    .list-item input[type="checkbox"] { cursor: pointer; transform: scale(1.2); accent-color: var(--primary); margin: 0; }
+    
+    /* STATUS E PROGRESSO */
+    .item-status { font-size: 11px; font-weight: 700; margin-left: 10px; min-width: 60px; text-align: right; }
+    .st-pending { color: #a5adba; }
+    .st-ok { color: var(--success); }
+    .st-error { color: var(--danger); }
+
+    .status-area { background: #e9f2ff; padding: 12px 15px; border-radius: 6px; border: 1px solid #b3d4ff; display: none; margin-top: auto; }
+    #progressBar { width: 100%; height: 6px; background: #fff; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+    #progressFill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+    #statusText { font-size: 12px; font-weight: 700; color: var(--primary); }
+
+    /* BOTÃO PRINCIPAL */
+    .footer-action { flex-shrink: 0; padding: 20px; background: var(--bg-card); border-top: 1px solid var(--border); }
+    .btn-action { padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; box-shadow: 0 2px 4px rgba(0,82,204,0.2); }
+    .btn-action:disabled { background: #a5adba; cursor: not-allowed; box-shadow: none; }
+    .btn-action:hover:not(:disabled) { background: var(--primary-hover); }
+
+    /* HISTÓRICO TAB */
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-card { background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--success); padding: 15px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+    .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .hist-date { font-size: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
+    .hist-user { font-size: 11px; color: var(--text-muted); background: #f4f5f7; padding: 2px 6px; border-radius: 4px; }
+    .hist-tabs { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .hist-tag { display: inline-block; background: #e9f2ff; color: var(--primary); padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; margin: 2px 4px 2px 0; }
+    .empty-state { text-align: center; padding: 40px 20px; color: #888; font-size: 13px; }
+    .empty-state i { font-size: 32px; color: #dfe1e6; margin-bottom: 15px; display: block; }
+  </style>
+</head>
+<body>
+
+  <div class="header-container">
+    <h3 class="header-title"><i class="fas fa-shield-alt"></i> Gerenciador de Acessos</h3>
+    <div class="tabs">
+       <button class="tab-btn active" id="tabBtn1" onclick="mudarAba('aplicar')">Aplicar Permissões</button>
+       <button class="tab-btn" id="tabBtn2" onclick="mudarAba('historico')">Histórico de Aplicações</button>
+    </div>
+  </div>
+
+  <div id="tab-aplicar" class="tab-content active">
+      
+      <div class="card">
+          <details class="email-accordion">
+              <summary><i class="fas fa-user-shield"></i> 1. Revisar Perfis de Acesso <i class="fas fa-chevron-down" style="margin-left:auto; font-size:12px; color:#a5adba;"></i></summary>
+              <div class="card-subtitle">Um e-mail por linha. Estes dados serão aplicados nas abas.</div>
+              
+              <div class="email-grid">
+                  <div class="email-box">
+                      <label>🛠️ Admin / Agend. <span class="badge-count" id="cntAdmin">0</span></label>
+                      <textarea id="txtAdmin" placeholder="Carregando..."></textarea>
+                  </div>
+                  <div class="email-box">
+                      <label>📋 Autorização <span class="badge-count" id="cntAut">0</span></label>
+                      <textarea id="txtAut" placeholder="Carregando..."></textarea>
+                  </div>
+                  <div class="email-box">
+                      <label>🛎️ Recepção <span class="badge-count" id="cntGuiche">0</span></label>
+                      <textarea id="txtGuiche" placeholder="Carregando..."></textarea>
+                  </div>
+                  <div class="email-box">
+                      <label>👀 Leitores <span class="badge-count" id="cntLeitores">0</span></label>
+                      <textarea id="txtLeitores" placeholder="Carregando..."></textarea>
+                  </div>
+              </div>
+          </details>
+      </div>
+
+      <div class="card" style="display: flex; flex-direction: column; flex: 1;">
+          <div class="card-header"><i class="fas fa-list-check"></i> 2. Selecionar Abas Destino</div>
+          
+          <div class="controls">
+              <div class="search-box">
+                  <i class="fas fa-search search-icon"></i>
+                  <input type="text" id="filtroInput" onkeyup="filtrarLista()" placeholder="Buscar data ou dia (ex: 15/04)...">
+              </div>
+              <button class="btn-sm" onclick="marcarVisiveis(true)"><i class="far fa-check-square"></i> Marcar Visíveis</button>
+              <button class="btn-sm" onclick="marcarVisiveis(false)"><i class="far fa-square"></i> Desmarcar</button>
+          </div>
+
+          <div id="listaAbas" class="list-container">
+              <div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Carregando abas do sistema...</div>
+          </div>
+
+          <div class="status-area" id="areaProgresso">
+              <div id="statusText">Aguardando início...</div>
+              <div id="progressBar"><div id="progressFill"></div></div>
+          </div>
+      </div>
+  </div>
+
+  <div class="footer-action" id="footerAplicar">
+      <button class="btn-action" id="btnStart" onclick="iniciarProcessoSelecionado()" disabled>
+          <span>Aplicar Permissões nas Abas Selecionadas</span> <i class="fas fa-paper-plane"></i>
+      </button>
+  </div>
+
+  <div id="tab-historico" class="tab-content" style="background:#f4f5f7; padding:20px;">
+      <div id="listaHistorico" class="history-list">
+          <div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Buscando histórico...</div>
+      </div>
+  </div>
+
+  <script>
+    var todasAbas = [];
+    var fila = [];
+    var abasSucesso = []; // Para gravar no histórico
+    var total = 0;
+    var processados = 0;
+    var listasGlobaisFinais = {}; 
+
+    // --- INICIALIZAÇÃO ---
+    window.onload = function() {
+        // Carrega E-mails
+        google.script.run
+            .withSuccessHandler(function(listas) {
+                document.getElementById('txtAdmin').value = listas.admin.join('\n');
+                document.getElementById('txtAut').value = listas.autorizacao.join('\n');
+                document.getElementById('txtGuiche').value = listas.guiche.join('\n');
+                document.getElementById('txtLeitores').value = listas.leitores.join('\n');
+                atualizarContadores();
+                ['txtAdmin', 'txtAut', 'txtGuiche', 'txtLeitores'].forEach(id => {
+                    document.getElementById(id).addEventListener('input', atualizarContadores);
+                });
+            }).obterListasIniciais();
+
+        // Carrega Abas
+        google.script.run
+            .withSuccessHandler(renderizarListaAbas)
+            .withFailureHandler(function(e){ document.getElementById('listaAbas').innerHTML = "Erro: "+e.message; })
+            .listarAbasDeDataParaConfig(); 
+            
+        // Carrega Histórico em Background
+        carregarHistorico();
+    };
+
+    // --- CONTROLES DE TELA (TABS E CONTADORES) ---
+    function mudarAba(aba) {
+        document.getElementById('tab-aplicar').classList.remove('active');
+        document.getElementById('tab-historico').classList.remove('active');
+        document.getElementById('tabBtn1').classList.remove('active');
+        document.getElementById('tabBtn2').classList.remove('active');
+        
+        if (aba === 'aplicar') {
+            document.getElementById('tab-aplicar').classList.add('active');
+            document.getElementById('tabBtn1').classList.add('active');
+            document.getElementById('footerAplicar').style.display = 'block';
+        } else {
+            document.getElementById('tab-historico').classList.add('active');
+            document.getElementById('tabBtn2').classList.add('active');
+            document.getElementById('footerAplicar').style.display = 'none';
+            carregarHistorico(); // Atualiza ao clicar
+        }
+    }
+
+    function atualizarContadores() {
+        var contar = (id) => document.getElementById(id).value.split('\n').filter(e=>e.trim()!=='').length;
+        document.getElementById('cntAdmin').innerText = contar('txtAdmin');
+        document.getElementById('cntAut').innerText = contar('txtAut');
+        document.getElementById('cntGuiche').innerText = contar('txtGuiche');
+        document.getElementById('cntLeitores').innerText = contar('txtLeitores');
+    }
+
+    // --- RENDERIZAÇÃO DE ABAS ---
+    function renderizarListaAbas(lista) {
+        todasAbas = lista; 
+        var container = document.getElementById('listaAbas');
+        container.innerHTML = "";
+        
+        if(lista.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i>Nenhuma aba de data encontrada.</div>';
+            return;
+        }
+
+        lista.forEach(function(nomeAba, index) {
+            var div = document.createElement('div');
+            div.className = 'list-item';
+            div.id = 'row_' + index;
+            div.setAttribute('data-nome', nomeAba.toLowerCase());
+            
+            div.innerHTML = `
+                <input type="checkbox" id="chk_${index}" value="${nomeAba}">
+                <label for="chk_${index}">${nomeAba}</label>
+                <span id="st_${index}" class="item-status st-pending">--</span>
+            `;
+            container.appendChild(div);
+        });
+
+        document.getElementById('btnStart').disabled = false;
+    }
+
+    function filtrarLista() {
+        var termo = document.getElementById('filtroInput').value.toLowerCase();
+        var itens = document.getElementsByClassName('list-item');
+        for (var i = 0; i < itens.length; i++) {
+            var nome = itens[i].getAttribute('data-nome');
+            itens[i].style.display = (nome.indexOf(termo) > -1) ? "" : "none";
+        }
+    }
+
+    function marcarVisiveis(estado) {
+        var itens = document.getElementsByClassName('list-item');
+        for (var i = 0; i < itens.length; i++) {
+            if (itens[i].style.display !== "none") {
+                var chk = itens[i].querySelector('input[type="checkbox"]');
+                if (!chk.disabled) chk.checked = estado;
+            }
+        }
+    }
+
+    // --- PROCESSAMENTO PRINCIPAL ---
+    function extrairEmails(idTextArea) {
+        var linhas = document.getElementById(idTextArea).value.split('\n');
+        var limpos = [];
+        for (var i=0; i<linhas.length; i++) {
+            var val = linhas[i].trim().toLowerCase();
+            if (val !== "") limpos.push(val);
+        }
+        return limpos;
+    }
+
+    function iniciarProcessoSelecionado() {
+        listasGlobaisFinais = {
+            admin: extrairEmails('txtAdmin'),
+            autorizacao: extrairEmails('txtAut'),
+            guiche: extrairEmails('txtGuiche'),
+            leitores: extrairEmails('txtLeitores')
+        };
+
+        fila = [];
+        abasSucesso = []; // Reseta lista de sucesso
+        var chks = document.querySelectorAll('#listaAbas input[type="checkbox"]');
+        
+        chks.forEach(function(c, index) {
+            if(c.checked && !c.disabled) {
+                c.disabled = true; 
+                document.getElementById('st_' + index).innerText = "⏳";
+                fila.push({ nome: c.value, index: index });
+            }
+        });
+
+        if(fila.length === 0) return alert("Selecione pelo menos uma aba para configurar.");
+
+        total = fila.length;
+        processados = 0;
+        var btn = document.getElementById('btnStart');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Processando...</span>';
+        
+        document.getElementById('areaProgresso').style.display = 'block';
+        document.getElementById('progressFill').style.width = "0%";
+        document.getElementById('statusText').innerText = "Atualizando acessos globais do Drive...";
+        
+        // 1. Atualiza o Drive Geral primeiro
+        google.script.run
+            .withSuccessHandler(function(res) {
+                processarProximoAba(); // 2. Vai para as abas
+            })
+            .withFailureHandler(function(err) {
+                alert("Falha crítica no Drive: " + err.message);
+                finalizar();
+            })
+            .processarPermissoesDrive(listasGlobaisFinais);
+    }
+
+    function processarProximoAba() {
+        if(fila.length === 0) {
+            finalizar();
+            return;
+        }
+
+        var item = fila.shift(); 
+        var domStatus = document.getElementById('st_' + item.index);
+        
+        domStatus.innerText = "🔄";
+        document.getElementById('statusText').innerText = "Protegendo: " + item.nome + " (" + (processados+1) + "/" + total + ")";
+
+        google.script.run
+            .withSuccessHandler(function(res) {
+                if(res.success) {
+                    domStatus.innerText = "✅ OK";
+                    domStatus.className = "item-status st-ok";
+                    abasSucesso.push(item.nome); // Guarda para o histórico
+                } else {
+                    domStatus.innerText = "❌ Erro";
+                    domStatus.className = "item-status st-error";
+                    domStatus.title = res.msg; 
+                }
+                atualizarBarra();
+                processarProximoAba();
+            })
+            .withFailureHandler(function(err) {
+                domStatus.innerText = "❌ Falha";
+                domStatus.className = "item-status st-error";
+                atualizarBarra();
+                processarProximoAba();
+            })
+            .aplicarPermissaoEmUmaAba(item.nome, listasGlobaisFinais);
+    }
+
+    function atualizarBarra() {
+        processados++;
+        var pct = Math.floor((processados / total) * 100);
+        document.getElementById('progressFill').style.width = pct + "%";
+    }
+
+    function finalizar() {
+        document.getElementById('statusText').innerText = "Concluído! " + processados + " abas processadas.";
+        var btn = document.getElementById('btnStart');
+        btn.innerHTML = '<i class="fas fa-check"></i> <span>Finalizado</span>';
+        
+        // Salva histórico se houver sucesso
+        if(abasSucesso.length > 0) {
+            google.script.run.withSuccessHandler(carregarHistorico).salvarHistoricoPermissoes(abasSucesso);
+        }
+
+        setTimeout(function() {
+             btn.disabled = false;
+             btn.innerHTML = '<i class="fas fa-redo"></i> <span>Configurar Outras Abas</span>';
+             document.getElementById('areaProgresso').style.display = 'none';
+        }, 3000);
+    }
+
+    // --- CARREGAR HISTÓRICO ---
+    function carregarHistorico() {
+        google.script.run.withSuccessHandler(function(hist) {
+            var container = document.getElementById('listaHistorico');
+            container.innerHTML = "";
+            
+            if(!hist || hist.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-history"></i>Nenhum histórico de aplicação recente.</div>';
+                return;
+            }
+
+            hist.forEach(function(reg) {
+                var tagsHTML = reg.abas.map(a => `<span class="hist-tag">${a}</span>`).join("");
+                var div = document.createElement('div');
+                div.className = 'history-card';
+                div.innerHTML = `
+                    <div class="hist-header">
+                        <div class="hist-date"><i class="far fa-clock"></i> ${reg.data}</div>
+                        <div class="hist-user"><i class="far fa-user"></i> ${reg.usuario.split('@')[0]}</div>
+                    </div>
+                    <div class="hist-tabs">
+                        <strong>Abas atualizadas:</strong><br>
+                        <div style="margin-top:5px;">${tagsHTML}</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }).obterHistoricoPermissoes();
+    }
+  </script>
+</body>
+</html>
