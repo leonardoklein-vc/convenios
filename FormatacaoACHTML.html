@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root { --primary: #0052cc; --success: #36b37e; --warning: #ffab00; --danger: #de350b; --bg: #f4f5f7; --text: #172b4d; --border: #dfe1e6; }
+    body { font-family: 'Inter', sans-serif; padding: 20px; margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden;}
+    
+    h3 { margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 18px; }
+    p { font-size: 13px; color: #5e6c84; margin-top: 0; }
+
+    /* Cards e Resumo */
+    .summary-cards { display: flex; gap: 15px; margin-bottom: 20px; }
+    .stat-card { flex: 1; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+    .stat-card.blue { border-bottom: 4px solid var(--primary); }
+    .stat-card.green { border-bottom: 4px solid var(--success); }
+    .stat-card.orange { border-bottom: 4px solid var(--warning); }
+    .stat-value { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #5e6c84; }
+
+    /* Lista de Abas */
+    .list-container { flex: 1; background: white; border: 1px solid var(--border); border-radius: 8px; overflow-y: auto; padding: 5px; margin-bottom: 20px; }
+    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #f4f5f7; font-size: 13px; }
+    .list-item:hover { background-color: #fafbfc; }
+    .item-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    
+    /* Badges de Status */
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+    .bdg-feito { background: #e3fcef; color: #006644; }
+    .bdg-pendente { background: #fff0b3; color: #b76e00; }
+    .bdg-erro { background: #ffebe6; color: #bf2600; }
+    .bdg-ok { background: #e6fcff; color: #008da6; }
+
+    /* Progresso */
+    .progress-area { background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px; display: none; }
+    .progress-bar-bg { width: 100%; height: 8px; background: #ebecf0; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+    .progress-text { font-size: 12px; font-weight: 600; color: #5e6c84; display: flex; justify-content: space-between; }
+
+    /* Botão */
+    .btn-main { padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; width: 100%; }
+    .btn-main:disabled { background: #a5adba; cursor: not-allowed; }
+    .btn-main:hover:not(:disabled) { background: #0065ff; }
+  </style>
+</head>
+<body>
+
+  <h3><i class="fas fa-magic"></i> Gerador da Coluna AC (Lote)</h3>
+  <p>Esta ferramenta cria o cabeçalho "Cód. do Paciente" na AC2 e copia a formatação da coluna AB exatamente até a última linha com horário preenchido (+1).</p>
+
+  <div class="summary-cards">
+      <div class="stat-card blue">
+          <div class="stat-value" id="totEncontradas">0</div>
+          <div class="stat-label">Abas Válidas</div>
+      </div>
+      <div class="stat-card green">
+          <div class="stat-value" id="totFeitas" style="color:var(--success)">0</div>
+          <div class="stat-label">Já Prontas</div>
+      </div>
+      <div class="stat-card orange">
+          <div class="stat-value" id="totPendentes" style="color:var(--warning)">0</div>
+          <div class="stat-label">Na Fila</div>
+      </div>
+  </div>
+
+  <div class="list-container" id="listaUi">
+      <div style="padding:40px; text-align:center; color:#5e6c84;">
+          <i class="fas fa-circle-notch fa-spin fa-2x"></i><br><br>Analisando as abas da planilha...
+      </div>
+  </div>
+
+  <div class="progress-area" id="progArea">
+      <div class="progress-text">
+          <span id="progLabel">Iniciando...</span>
+          <span id="progPct">0%</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-fill" id="progFill"></div></div>
+  </div>
+
+  <button class="btn-main" id="btnStart" onclick="iniciarProcessamento()" disabled>
+      <i class="fas fa-play"></i> Processar Abas Pendentes
+  </button>
+
+  <script>
+    var filaProcessamento = [];
+    var totalProcessar = 0;
+    var processados = 0;
+
+    window.onload = function() {
+        google.script.run
+            .withSuccessHandler(montarTela)
+            .withFailureHandler(err => alert("Erro: " + err.message))
+            .listarAbasParaFormatacaoAC();
+    };
+
+    function montarTela(abas) {
+        var container = document.getElementById('listaUi');
+        container.innerHTML = "";
+        
+        var cFeitos = 0;
+        var cPendentes = 0;
+        filaProcessamento = [];
+
+        if (abas.length === 0) {
+            container.innerHTML = '<div style="padding:20px;text-align:center;">Nenhuma aba com formato de Data encontrada.</div>';
+            return;
+        }
+
+        abas.forEach(function(aba, index) {
+            var isFeito = (aba.status === 'feito');
+            if (isFeito) cFeitos++; else { cPendentes++; filaProcessamento.push(aba); }
+
+            var icon = isFeito ? '<i class="fas fa-file-alt" style="color:#36b37e"></i>' : '<i class="far fa-file-alt" style="color:#ffab00"></i>';
+            var bdg = isFeito ? '<span class="badge bdg-feito">Já Formatada</span>' : `<span class="badge bdg-pendente" id="st_${index}">Aguardando Fila</span>`;
+
+            var div = document.createElement('div');
+            div.className = 'list-item';
+            div.innerHTML = `<div class="item-name">${icon} ${aba.nome}</div><div>${bdg}</div>`;
+            container.appendChild(div);
+            
+            // Grava o ID no objeto para acharmos a badge na hora de processar
+            if (!isFeito) aba.domId = 'st_' + index;
+        });
+
+        document.getElementById('totEncontradas').innerText = abas.length;
+        document.getElementById('totFeitas').innerText = cFeitos;
+        document.getElementById('totPendentes').innerText = cPendentes;
+
+        var btn = document.getElementById('btnStart');
+        if (cPendentes > 0) {
+            btn.disabled = false;
+        } else {
+            btn.innerHTML = '<i class="fas fa-check"></i> Todas as abas já estão prontas!';
+            btn.style.background = '#36b37e';
+        }
+    }
+
+    function iniciarProcessamento() {
+        if(filaProcessamento.length === 0) return;
+        
+        document.getElementById('btnStart').disabled = true;
+        document.getElementById('progArea').style.display = 'block';
+        
+        totalProcessar = filaProcessamento.length;
+        processados = 0;
+        
+        processarProximaAba();
+    }
+
+    function processarProximaAba() {
+        if(filaProcessamento.length === 0) {
+            document.getElementById('progLabel').innerText = "Concluído!";
+            document.getElementById('btnStart').innerHTML = '<i class="fas fa-check-double"></i> Tarefa Finalizada';
+            document.getElementById('btnStart').style.background = '#36b37e';
+            return;
+        }
+
+        var alvo = filaProcessamento.shift();
+        var badge = document.getElementById(alvo.domId);
+        
+        badge.className = "badge bdg-pendente";
+        badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Formatando...';
+        document.getElementById('progLabel').innerText = "Processando: " + alvo.nome;
+
+        google.script.run
+            .withSuccessHandler(function(res) {
+                if (res.success) {
+                    badge.className = "badge bdg-ok";
+                    badge.innerHTML = 'Concluído <i class="fas fa-check"></i>';
+                } else {
+                    badge.className = "badge bdg-erro";
+                    badge.innerHTML = 'Erro: ' + res.msg;
+                    badge.title = res.msg;
+                }
+                atualizarProgresso();
+                processarProximaAba(); // Chama recursivo
+            })
+            .withFailureHandler(function(err) {
+                badge.className = "badge bdg-erro";
+                badge.innerHTML = 'Falha crítica';
+                atualizarProgresso();
+                processarProximaAba();
+            })
+            .aplicarFormatacaoAC(alvo.nome);
+    }
+
+    function atualizarProgresso() {
+        processados++;
+        var pct = Math.floor((processados / totalProcessar) * 100);
+        document.getElementById('progFill').style.width = pct + "%";
+        document.getElementById('progPct').innerText = pct + "%";
+        
+        document.getElementById('totPendentes').innerText = totalProcessar - processados;
+        document.getElementById('totFeitas').innerText = parseInt(document.getElementById('totFeitas').innerText) + 1;
+    }
+  </script>
+</body>
+</html>
