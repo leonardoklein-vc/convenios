@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f4f5f7; padding: 15px; color: #172b4d; }
+    h3 { margin-top: 0; color: #0052cc; border-bottom: 2px solid #dfe1e6; padding-bottom: 10px; }
+    
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+    
+    select, input { width: 100%; padding: 8px; border: 1px solid #dfe1e6; border-radius: 4px; box-sizing: border-box; }
+    
+    .btn { width: 100%; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .btn-primary { background: #0052cc; color: white; }
+    .btn-primary:disabled { background: #ccc; }
+    
+    /* Área de destaque para quando for criar Nova Área */
+    #areaConfig { 
+      background: #e3f2fd; 
+      padding: 10px; 
+      border: 1px solid #90caf9; 
+      border-radius: 6px; 
+      margin-bottom: 15px; 
+      display: none; /* Oculto por padrão */
+    }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <h3>🏗️ Nova Estrutura</h3>
+
+  <form id="formEst">
+    
+    <div class="form-group">
+      <label>O que você quer fazer?</label>
+      <select id="tipo" onchange="toggleTipo()">
+        <option value="sala">Adicionar Sala em Área existente</option>
+        <option value="area">Criar NOVA ÁREA (Com Sala)</option>
+      </select>
+    </div>
+
+    <div id="areaConfig">
+      <div class="form-group">
+        <label style="color:#0d47a1;">🏷️ Nome da Nova Área (Ex: BLOCO C)</label>
+        <input type="text" id="nomeArea" placeholder="DIGITE O NOME DA ÁREA...">
+      </div>
+      <small style="display:block; margin-bottom:10px; color:#555;">
+        *Uma sala será criada automaticamente dentro desta área. Configure-a abaixo:
+      </small>
+    </div>
+
+    <div class="form-group">
+      <label id="lblNomeSala">Nome da Sala (Ex: SALA 05)</label>
+      <input type="text" id="nomeSala" required placeholder="Digite o nome da sala...">
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <div class="form-group" style="flex:1;">
+        <label>Início</label>
+        <input type="time" id="horaInicio" value="07:30">
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Fim</label>
+        <input type="time" id="horaFim" value="13:30">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Tipo da Sala (Cor)</label>
+      <select id="corTipo">
+        <option value="normal">Normal (Branco)</option>
+        <option value="ciano">Especialidade (Ciano)</option>
+      </select>
+    </div>
+
+    <hr style="border:0; border-top:1px solid #ccc; margin: 15px 0;">
+
+    <div class="form-group">
+      <label>Ponto de Referência</label>
+      <select id="referencia">
+        <option>Carregando...</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Posição</label>
+      <select id="posicao">
+        <option value="depois">Inserir APÓS a referência</option>
+        <option value="antes">Inserir ANTES da referência</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="btnSalvar">Inserir na Planilha</button>
+  </form>
+
+  <script>
+    function toggleTipo() {
+      var t = document.getElementById('tipo').value;
+      var divArea = document.getElementById('areaConfig');
+      var lblSala = document.getElementById('lblNomeSala');
+      
+      if(t === 'area') {
+        divArea.style.display = 'block';
+        lblSala.innerText = "Nome da 1ª Sala desta Área";
+        document.getElementById('nomeArea').setAttribute('required', 'true');
+      } else {
+        divArea.style.display = 'none';
+        lblSala.innerText = "Nome da Sala (Ex: SALA 05)";
+        document.getElementById('nomeArea').removeAttribute('required');
+      }
+    }
+
+    window.onload = function() {
+      google.script.run.withSuccessHandler(function(lista) {
+        var sel = document.getElementById('referencia');
+        sel.innerHTML = "";
+        if(lista.length === 0) {
+           var opt = document.createElement("option");
+           opt.text = "Início da Planilha (Vazia)";
+           opt.value = "5"; // Linha inicial padrão
+           sel.add(opt);
+        } else {
+           lista.forEach(function(item) {
+             var opt = document.createElement("option");
+             opt.value = item.linha;
+             opt.text = item.nome;
+             sel.add(opt);
+           });
+        }
+      }).obterEstruturaAtual();
+    };
+
+    document.getElementById('formEst').onsubmit = function(e) {
+      e.preventDefault();
+      var btn = document.getElementById('btnSalvar');
+      btn.disabled = true;
+      btn.innerText = "Processando...";
+
+      var dados = {
+        tipo: document.getElementById('tipo').value,
+        nomeArea: document.getElementById('nomeArea').value, // Novo campo
+        nomeSala: document.getElementById('nomeSala').value,
+        horaInicio: document.getElementById('horaInicio').value,
+        horaFim: document.getElementById('horaFim').value,
+        corTipo: document.getElementById('corTipo').value,
+        referencia: document.getElementById('referencia').value,
+        posicao: document.getElementById('posicao').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerText = "Inserir na Planilha";
+          if (res.success) {
+            alert("✅ " + res.msg);
+            window.onload(); // Recarrega lista
+            if(document.getElementById('tipo').value === 'area') {
+                // Limpa campos para não duplicar sem querer
+                document.getElementById('nomeArea').value = "";
+                document.getElementById('nomeSala').value = "";
+            }
+          } else {
+            alert("❌ " + res.msg);
+          }
+        })
+        .withFailureHandler(function(err) {
+          alert("Erro: " + err);
+          btn.disabled = false;
+        })
+        .processarInsercaoEstrutura(dados);
+    };
+  </script>
+</body>
+</html>
