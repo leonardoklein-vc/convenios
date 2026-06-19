@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <style>
+    /* Estilo Compacto para Sidebar */
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8f9fa;
+      margin: 0; padding: 0; color: #333;
+    }
+    .container { padding: 15px; padding-bottom: 80px; }
+    
+    /* Card de Informação de Origem */
+    .info-origem {
+      background-color: #ffebe6;
+      border: 1px solid #ffbdad;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 12px;
+    }
+    .info-origem strong { color: #bf2600; display: block; margin-bottom: 4px; }
+
+    h2 {
+      font-size: 14px; color: #0052cc; border-bottom: 1px solid #dfe1e6;
+      padding-bottom: 5px; margin: 15px 0 10px 0;
+    }
+    label { display: block; font-size: 11px; font-weight: 600; color: #5e6c84; margin-bottom: 2px; }
+    input, select { width: 100%; padding: 8px; border: 1px solid #dfe1e6; border-radius: 4px; font-size: 13px; box-sizing: border-box; margin-bottom: 8px; }
+    
+    /* Input Padrão sem Select2 */
+    .form-control {
+       background-color: #fff;
+       cursor: pointer;
+    }
+
+    /* Seção de Destino (Destaque) */
+    .destino-box {
+      background-color: #e9f2ff;
+      border: 1px solid #b3d4ff;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    .footer {
+      position: fixed; bottom: 0; left: 0; width: 100%;
+      background: #fff; border-top: 1px solid #dfe1e6;
+      padding: 10px; display: flex; gap: 10px; box-sizing: border-box;
+    }
+    button { flex: 1; padding: 10px; border-radius: 4px; font-weight: 600; cursor: pointer; border: none; font-size: 13px; }
+    .btn-cancel { background: #ebecf0; color: #42526e; }
+    .btn-save { background: #0052cc; color: white; }
+    
+    /* Select2 Ajustes */
+    .select2-container .select2-selection--single { height: 34px !important; }
+    .select2-selection__rendered { line-height: 34px !important; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <div class="info-origem">
+      <strong>🔄 Movendo Paciente:</strong>
+      <span id="lblPaciente">Carregando...</span><br>
+      <span style="color:#666;">De: <span id="lblOrigem">...</span></span>
+    </div>
+
+    <form id="reagendarForm">
+      <input type="hidden" id="origemSheet">
+      <input type="hidden" id="origemRow">
+      <input type="hidden" id="origemDuracaoBlocos">
+
+      <div class="destino-box">
+        <label style="color:#0052cc;">📅 PARA QUAL DATA?</label>
+        <select id="novaData" class="form-control" required></select>
+        
+        <div style="display:flex; gap:5px; margin-top:8px;">
+          <div style="flex:1;">
+            <label>Sala</label>
+            <select id="salaSelect" class="form-control" disabled><option>Selecione Data...</option></select>
+          </div>
+          <div style="flex:1;">
+            <label>Horário</label>
+            <select id="horaSelect" class="form-control" disabled><option>...</option></select>
+            <input type="hidden" id="linhaInicial">
+          </div>
+        </div>
+        
+        <label style="margin-top:8px;">Nova Duração</label>
+        <select id="duracao" class="form-control">
+            <option value="30">30min</option>
+            <option value="60">1h</option>
+            <option value="90">1h 30min</option>
+            <option value="120">2h</option>
+            <option value="150">2h 30min</option>
+            <option value="180">3h</option>
+            <option value="240">4h</option>
+            <option value="300">5h</option>
+        </select>
+      </div>
+
+      <h2>Dados (Editáveis)</h2>
+      <label>Nome</label><input id="paciente" required>
+      <label>Nascimento</label><input id="nascimento" readonly>
+      <label>Equipe</label><select id="equipe" class="select2"></select>
+
+      <label>Procedimentos</label>
+      <select id="procedimentos" multiple class="select2" disabled></select>
+
+      <label>Convênio</label>
+      <select id="convenio" class="select2" disabled></select>
+      
+      <details>
+        <summary style="font-size:12px; color:#0052cc; cursor:pointer; margin-bottom:10px;">Ver mais campos (somente leitura)...</summary>
+        <label>Dr(a)/Anest</label><input id="anestesista" readonly>
+        <label>Origem</label><select id="origem" class="select2" disabled></select>
+        <label>Lado</label><select id="lado" class="select2" disabled></select>
+        <label>CID</label><input id="cid" readonly>
+        <label>I/A</label><select id="ia" class="select2" disabled></select>
+        <label>Marcação</label><select id="marcadoPor" class="select2" disabled></select>
+        <label>Matrícula</label><input id="matricula" readonly>
+        <label>Telefone</label><input id="telefone" readonly>
+        <label>Materiais</label><select id="materiais" multiple class="select2" disabled></select>
+        <label>Equipamentos</label><select id="equipamentos" multiple class="select2" disabled></select>
+        <label>Exames</label><select id="exames" multiple class="select2" disabled></select>
+        <label>OPME/Obs</label><input id="opme" readonly>
+        <label>Status</label><select id="status" class="select2" disabled></select>
+        <label>Infos</label><input id="outrasInfo" readonly>
+        <input type="hidden" id="agenda">
+        <input type="hidden" id="motivo">
+        <input type="hidden" id="revisao">
+        <input type="hidden" id="cti">
+        <input type="hidden" id="aut">
+      </details>
+
+      <div class="footer">
+        <button type="button" class="btn-cancel" onclick="google.script.host.close()">Cancelar</button>
+        <button type="submit" class="btn-save" id="btnSalvar">✅ Confirmar Move</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <script>
+    var dados = JSON.parse('<?= dadosOrigem ?>');
+    var listas = JSON.parse('<?= listas ?>');
+    var guias = JSON.parse('<?= guias ?>');
+
+    $(document).ready(function() {
+      // Init Select2 APENAS para campos que precisam
+      $('.select2').select2({ width: '100%', placeholder: '...', allowClear: true });
+
+      // 1. Preencher Campos com Dados Originais
+      $('#lblPaciente').text(dados.paciente);
+      $('#lblOrigem').text(dados.origemSheet);
+      
+      $('#origemSheet').val(dados.origemSheet);
+      $('#origemRow').val(dados.origemRow);
+      $('#origemDuracaoBlocos').val(dados.origemDuracaoBlocos);
+
+      $('#paciente').val(dados.paciente);
+      $('#nascimento').val(dados.nascimento);
+      $('#anestesista').val(dados.anestesista);
+      $('#cid').val(dados.cid);
+      $('#matricula').val(dados.matricula);
+      $('#telefone').val(dados.telefone);
+      $('#opme').val(dados.opme);
+      $('#outrasInfo').val(dados.outrasInfo);
+      
+      // Preenche Selects
+      preencherSelect('equipe', listas.equipes, dados.equipe);
+      preencherSelect('origem', listas.origens, dados.origem);
+      preencherSelect('convenio', listas.convenios, dados.convenio);
+      preencherSelect('lado', listas.lados, dados.lado);
+      preencherSelect('ia', listas.ias, dados.ia);
+      preencherSelect('marcadoPor', listas.marcacoes, dados.marcadoPor);
+      preencherSelect('status', listas.status, dados.status);
+      
+      preencherSelectMulti('procedimentos', listas.procedimentos, dados.procedimentos);
+      preencherSelectMulti('materiais', listas.materiais, dados.materiais);
+      preencherSelectMulti('equipamentos', listas.equipamentos, dados.equipamentos);
+      preencherSelectMulti('exames', listas.exames, dados.exames);
+
+      // Travar selects que não devem ser editados (Select2)
+      $('#procedimentos').prop('disabled', true).trigger('change.select2');
+      $('#convenio').prop('disabled', true).trigger('change.select2');
+      $('#origem').prop('disabled', true).trigger('change.select2');
+      $('#lado').prop('disabled', true).trigger('change.select2');
+      $('#ia').prop('disabled', true).trigger('change.select2');
+      $('#marcadoPor').prop('disabled', true).trigger('change.select2');
+      $('#status').prop('disabled', true).trigger('change.select2');
+      $('#materiais').prop('disabled', true).trigger('change.select2');
+      $('#equipamentos').prop('disabled', true).trigger('change.select2');
+      $('#exames').prop('disabled', true).trigger('change.select2');
+
+      // Define duração estimada
+      $('#duracao').val(dados.duracaoEstimada || 60);
+
+      // 2. Configurar Destino (Usando Selects Nativos agora)
+      var novaDataSel = $('#novaData');
+      novaDataSel.append(new Option("Selecione...", ""));
+      guias.forEach(function(g) { novaDataSel.append(new Option(g, g)); });
+
+      // Ao escolher data, busca disponibilidade
+      novaDataSel.on('change', function() {
+        var guia = $(this).val();
+        var salaSel = $('#salaSelect');
+        var horaSel = $('#horaSelect');
+        
+        salaSel.empty().append('<option>Carregando...</option>').prop('disabled', true);
+        horaSel.empty().prop('disabled', true);
+
+        if(guia) {
+          google.script.run.withSuccessHandler(function(disp) {
+            salaSel.empty().append('<option value="">Selecione...</option>');
+            if(!disp) { salaSel.append('<option>Erro ao ler</option>'); return; }
+            
+            // Guarda disp globalmente temp
+            window.dispTemp = disp;
+            Object.keys(disp).forEach(function(s) { salaSel.append(new Option(s, s)); });
+            salaSel.prop('disabled', false);
+          }).obterDisponibilidadeDaGuia(guia);
+        }
+      });
+
+      $('#salaSelect').on('change', function() {
+        var s = $(this).val();
+        var h = $('#horaSelect').empty().append('<option value="">Selecione...</option>');
+        if(s && window.dispTemp && window.dispTemp[s]) {
+           window.dispTemp[s].forEach(function(item) { h.append(new Option(item.hora, item.linha)); });
+           h.prop('disabled', false);
+        } else { 
+          h.prop('disabled', true); 
+        }
+      });
+
+      $('#horaSelect').on('change', function() { 
+        $('#linhaInicial').val($(this).val()); 
+      });
+
+      // 3. Submit (Mover)
+      $('#reagendarForm').on('submit', function(e) {
+        e.preventDefault();
+        if(!$('#novaData').val() || !$('#linhaInicial').val()) {
+          alert("Selecione Data, Sala e Horário de destino!"); 
+          return;
+        }
+
+        var btn = $('#btnSalvar');
+        btn.text('Movendo...').prop('disabled', true);
+
+        var form = {
+           origemSheet: $('#origemSheet').val(),
+           origemRow: $('#origemRow').val(),
+           origemDuracaoBlocos: $('#origemDuracaoBlocos').val(),
+           
+           guia: $('#novaData').val(),
+           linhaInicial: $('#linhaInicial').val(),
+           duracao: $('#duracao').val(),
+           
+           paciente: $('#paciente').val(),
+           equipe: $('#equipe').val(),
+
+           valoresOriginais: dados.valoresOriginais
+        };
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+             if(res.success) {
+               alert(res.message);
+               google.script.host.close();
+             } else {
+               alert(res.message);
+               btn.text('Tentar Novamente').prop('disabled', false);
+             }
+          })
+          .executarReagendamento(form);
+      });
+    });
+
+    function preencherSelect(id, arr, val) {
+      var s = $('#'+id); 
+      s.append(new Option("",""));
+      if(arr) arr.forEach(function(x){ s.append(new Option(x,x)); });
+      if(val) s.val(val).trigger('change');
+    }
+    function preencherSelectMulti(id, arr, vals) {
+      var s = $('#'+id);
+      if(arr) arr.forEach(function(x){ s.append(new Option(x,x)); });
+      if(vals && vals.length) s.val(vals).trigger('change');
+    }
+  </script>
+</body>
+</html>
