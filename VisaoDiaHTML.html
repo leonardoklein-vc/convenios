@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  
+  <?!= include('VisaoDiaCSS'); ?>
+  <?!= include('MensagensTemplates'); ?>
+  
+  <style>
+    /* Ajustes locais e da nova barra de usuário */
+    .status-dropdown { z-index: 10000 !important; }
+
+    /* NOVA BARRA DE USUÁRIO */
+    .user-info-badge {
+        display: flex; align-items: center; gap: 8px;
+        background-color: #e3f2fd; border: 1px solid #bbdefb; color: #0d47a1;
+        padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+        margin: 0 15px; white-space: nowrap;
+    }
+    .user-info-badge i { font-size: 12px; }
+
+    /* Estilos de Notas */
+    .note-indicator { color: #f59f00; margin-left: 6px; font-size: 13px; animation: pulseNote 2s infinite; }
+    @keyframes pulseNote { 0% { opacity: 0.8; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.8; transform: scale(1); } }
+    .has-note-field { border-bottom: 2px dashed #f59f00 !important; background-color: #fff9db !important; color: #333 !important; cursor: help !important; padding: 2px 5px; border-radius: 4px; position: relative; transition: background-color 0.2s; }
+    .has-note-field:hover { background-color: #ffec99 !important; }
+  </style>
+</head>
+<body>
+
+  <script id="data-aba-inicial" type="application/json"><?!= JSON.stringify(abaInicial) ?></script>
+  <script id="data-listas" type="application/json"><?!= listas ?></script>
+  <script id="data-disp" type="application/json"><?!= dispInicial ?></script>
+
+  <div class="top-bar" id="topBarMain">
+    <div class="top-left">
+      <div class="top-title"><i class="fas fa-calendar-day"></i> Data: </div>
+      <div class="date-selector-wrapper">
+        <select id="guiaSelector" onchange="carregarDia()">
+          <option value="">Carregando datas...</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary" onclick="carregarDia()" title="Recarregar dados">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+    
+    <div class="user-info-badge" title="Suas credenciais de acesso">
+        <i class="fas fa-user-circle"></i>
+        <span>
+           Bem vindo <b><?= displayUser ?></b> | 
+           Grupo: <b><?= displayGroup ?></b> | 
+           Edição: <b><?= isUserAdmin ? 'LIBERADA ✅' : 'BLOQUEADA 🔒' ?></b>
+        </span>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size:13px; color:#666; font-weight:500;">
+        Total: <b id="totalCount" style="color:#172b4d;">0</b>
+      </span>
+      
+      <div class="btn-group" style="margin-left: 10px; margin-right: 5px; background: #ebecf0; padding: 3px; border-radius: 4px; display:flex; align-items:center;">
+          <button class="btn btn-sm" id="btnViewCards" onclick="alterarModoVisualizacao('cards')" title="Visão Blocos" style="background:#fff; border:1px solid #ccc; padding: 5px 10px; cursor:pointer; border-radius:3px;">
+              <i class="fas fa-th-large"></i>
+          </button>
+          <button class="btn btn-sm" id="btnViewAgenda" onclick="alterarModoVisualizacao('agenda')" title="Visão Agenda (Por Sala)" style="background:transparent; border:none; padding: 5px 10px; cursor:pointer; border-radius:3px;">
+              <i class="fas fa-calendar-alt"></i>
+          </button>
+      </div>
+
+      <button class="btn btn-primary" onclick="mostrarViewNovo()">
+        <i class="fas fa-plus"></i> Novo
+      </button>
+
+      <button class="btn-help" onclick="abrirAjuda()" title="Guia do Sistema">
+        <i class="far fa-question-circle"></i>
+      </button>
+    </div>
+  </div>
+
+  <div style="flex: 1; overflow: hidden; position: relative; background: #f4f5f7;">
+      
+      <div id="view-dashboard" class="view-section active">
+          <div class="main-content" id="board" style="padding:0;">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>Selecione uma data para visualizar...</p>
+            </div>
+          </div>
+      </div>
+
+      <div id="view-novo" class="view-section" style="background:white;">
+          <div class="form-header-bar">
+              <div class="form-title"><i class="fas fa-plus-circle"></i> Novo Agendamento</div>
+              <button class="btn btn-secondary" onclick="voltarDashboard()">Voltar</button>
+          </div>
+          <form id="formNovo">
+              <input type="hidden" id="n_edit_id" value="">
+              <input type="hidden" id="n_edit_guia" value="">
+
+              <div class="grid-form" style="background:#e9f2ff; padding:15px; border-radius:6px; margin-bottom:15px; border:1px solid #b3d4ff;">
+                  <div class="g-col-4"><label style="color:#0052cc; font-size:12px; text-transform:uppercase;">📍 Dados do Horário</label></div>
+                  <div class="g-col-1"><label>Sala</label><select id="n_sala" class="form-control" required></select></div>
+                  <div class="g-col-1"><label>Horário</label><select id="n_hora" class="form-control" required disabled></select></div>
+                  <div class="g-col-2"><label>Duração</label>
+                      <select id="n_duracao" class="form-control">
+                          <option value="30">30min (1 bloco)</option><option value="60" selected>1h (2 blocos)</option>
+                          <option value="90">1h 30min (3 blocos)</option><option value="120">2h (4 blocos)</option>
+                          <option value="150">2h 30min (5 blocos)</option><option value="180">3h (6 blocos)</option>
+                          <option value="240">4h (8 blocos)</option><option value="300">5h (10 blocos)</option>
+                      </select>
+                  </div>
+              </div>
+
+              <div class="grid-form">
+                  <div class="g-col-3"><label>Nome Paciente</label><input id="n_paciente" class="form-control" required placeholder="Nome completo"></div>
+                  <div class="g-col-1"><label>Código Paciente</label><input id="n_codigo" class="form-control" placeholder="Ex: 12345"></div>
+                  <div class="g-col-1"><label>Nascimento</label><input id="n_nasc" class="form-control" placeholder="dd/mm/aaaa"></div>
+                  <div class="g-col-2"><label>Convênio</label><select id="n_convenio" class="select2"></select></div>
+                  <div class="g-col-1"><label>Matrícula</label><input id="n_matr" class="form-control"></div>
+                  <div class="g-col-1"><label>Telefone</label><input id="n_tel" class="form-control"></div>
+                  <div class="g-col-4"><hr style="border:0; border-top:1px solid #eee; margin:10px 0;"></div>
+                  <div class="g-col-2"><label>Equipe</label><select id="n_equipe" class="select2" required></select></div>
+                  <div class="g-col-1"><label>Anestesista</label><input id="n_anest" class="form-control"></div>
+                  <div class="g-col-1"><label>Origem</label><select id="n_origem" class="select2"></select></div>
+                  <div class="g-col-4"><label>Procedimentos</label><select id="n_proc" class="select2" multiple></select></div>
+                  <div class="g-col-1"><label>Lado</label><select id="n_lado" class="select2"></select></div>
+                  <div class="g-col-1"><label>CID</label><input id="n_cid" class="form-control"></div>
+                  <div class="g-col-1"><label>I/A</label><select id="n_ia" class="select2"></select></div>
+                  <div class="g-col-1"><label>Marcação</label><select id="n_marc" class="select2"></select></div>
+                  <div class="g-col-4"><label>Materiais</label><select id="n_mat" class="select2" multiple></select></div>
+                  <div class="g-col-4"><label>Equipamentos</label><select id="n_equip" class="select2" multiple></select></div>
+                  <div class="g-col-4"><label>Exames</label><select id="n_exa" class="select2" multiple></select></div>
+                  <div class="g-col-3"><label>OPME</label><select id="n_opme" class="select2"></select></div>
+                  <div class="g-col-1"><label>CTI?</label><select id="n_cti" class="select2"><option value=""></option><option value="SIM">SIM</option><option value="NÃO">NÃO</option></select></div>
+                  <div class="g-col-2"><label>Status</label><select id="n_status" class="select2"></select></div>
+                  <div class="g-col-2"><label>Outras Infos</label><input id="n_info" class="form-control"></div>
+              </div>
+              <div style="margin-top:20px; text-align:right; border-top:1px solid #eee; padding-top:15px;">
+                  <button type="submit" class="btn btn-primary" id="btnSalvarNovo">💾 Salvar Agendamento</button>
+              </div>
+          </form>
+      </div>
+
+      <div id="view-reagendar" class="view-section" style="background:white;">
+          <div class="form-header-bar" style="background:#fff8e1; border-color:#ffe082; padding:15px; border-radius:6px; border:1px solid #ffe082;">
+              <div class="form-title" style="color:#b76e00;"><i class="fas fa-exchange-alt"></i> Reagendar Paciente</div>
+              <button class="btn btn-secondary" onclick="voltarDashboard()">Cancelar</button>
+          </div>
+          
+          <div style="margin-bottom:20px; padding:15px; border:1px solid #eee; border-radius:6px; background:#fafbfc;">
+              <strong style="font-size:14px; color:#172b4d;">Paciente:</strong> <span id="r_lbl_paciente" style="font-size:14px;">...</span><br>
+              <small style="color:#666;">Origem Atual: <span id="r_lbl_origem" style="font-weight:600;">...</span></small>
+          </div>
+
+          <form id="formReagendar">
+              <input type="hidden" id="r_origemSheet">
+              <input type="hidden" id="r_origemRow">
+              <input type="hidden" id="r_origemDuracao">
+
+              <div class="grid-form" style="background:#e9f2ff; padding:15px; border-radius:6px; margin-bottom:20px; border:1px solid #b3d4ff;">
+                  <div class="g-col-4"><label style="color:#0052cc; font-size:12px; text-transform:uppercase;">📅 Para qual data?</label></div>
+                  <div class="g-col-2">
+                      <label>Data Destino</label>
+                      <select id="r_guia_destino" class="form-control" required></select>
+                  </div>
+                  <div class="g-col-1">
+                      <label>Sala</label>
+                      <select id="r_sala" class="form-control" disabled required></select>
+                  </div>
+                  <div class="g-col-1">
+                      <label>Horário</label>
+                      <select id="r_hora" class="form-control" disabled required></select>
+                  </div>
+                  <div class="g-col-2">
+                    <label>Nova Duração</label>
+                    <select id="r_duracao" class="form-control">
+                          <option value="30">30min</option><option value="60">1h</option><option value="90">1h 30min</option>
+                          <option value="120">2h</option><option value="150">2h 30min</option><option value="180">3h</option><option value="240">4h</option>
+                    </select>
+                  </div>
+              </div>
+
+              <h3 style="font-size:14px; color:#5e6c84; border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:15px;">Dados (Editáveis)</h3>
+              <div class="grid-form">
+                  <div class="g-col-3"><label>Nome (Editar se precisar)</label><input id="r_paciente" class="form-control" required></div>
+                  <div class="g-col-1"><label>Matrícula</label><input id="r_matr" class="form-control" readonly></div>
+                  <div class="g-col-2"><label>Equipe</label><select id="r_equipe" class="select2"></select></div>
+              </div>
+
+              <div style="margin-top:20px; text-align:right; border-top:1px solid #eee; padding-top:15px;">
+                  <button type="submit" class="btn btn-warning" id="btnSalvarReag">✅ Confirmar Move</button>
+              </div>
+          </form>
+      </div>
+  </div>
+
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <form id="editForm">
+        <div class="modal-header">
+            <h1 class="modal-title-main" id="mNome" style="margin:0; font-size:18px; color:#172b4d;">Nome do Paciente</h1>
+            
+            <div style="display:flex; gap:10px; align-items:center;">
+                 <span id="modalAutBadge" class="badge-aut-modal aut-none" onclick="toggleDropdownAut(event)"></span>
+                 <button type="button" class="btn-close" onclick="fecharModal()">&times;</button>
+            </div>
+        </div>
+
+        <div class="recepcao-accordion" onclick="toggleRecepcao()">
+            <div class="recepcao-title"><i class="fas fa-concierge-bell"></i> Recepção/Guichê</div>
+            <i class="fas fa-chevron-down chevron-icon" id="recepcaoIcon"></i>
+        </div>
+        <div class="recepcao-content" id="recepcaoArea">
+            <div class="grid-container">
+              <div class="span-2">
+                <label class="editable-label"><i class="fas fa-user"></i> Check 1 (Email/AA)</label>
+                <input type="text" class="edit-input" id="inputEmail" name="email" placeholder="Dados Check 1...">
+              </div>
+              <div class="span-2">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <label class="editable-label" style="margin-bottom:0;">📝 Check 2 (Obs/AB)</label>
+                    <span id="recepcaoGuicheBadge" class="badge-guiche" onclick="toggleDropdownGuiche(event, -1, true)" title="Alterar Guichê aqui"></span>
+                </div>
+                <textarea class="edit-input" id="inputObs" name="obs" rows="2" placeholder="Dados Check 2..."></textarea>
+              </div>
+            </div>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-content-pad">
+            <input type="hidden" id="editId" name="id">
+            <input type="hidden" id="editGuia" name="guia">
+
+            <div class="section-title" style="margin-top:0;"><i class="far fa-id-card"></i> Dados do Paciente</div>
+            <div class="grid-container">
+                <div class="info-block"><span class="info-label">Código</span>
+                    <div class="info-value">
+                        <span id="vCodigo"></span>
+                        <i class="far fa-copy btn-copy" onclick="copiarTexto(document.getElementById('vCodigo').innerText)" title="Copiar Código"></i>
+                    </div>
+                </div>
+                <div class="info-block"><span class="info-label">Nascimento</span><div class="info-value" id="vNasc"></div></div>
+                <div class="info-block"><span class="info-label">Telefone</span><div class="info-value" id="vTel"></div></div>
+                <div class="info-block"><span class="info-label">Convênio</span><div class="info-value" id="vConv"></div></div>
+                <div class="info-block"><span class="info-label">Matrícula</span>
+                    <div class="info-value">
+                        <span id="vMatr"></span>
+                        <i class="far fa-copy btn-copy" onclick="copiarTexto(document.getElementById('vMatr').innerText)" title="Copiar Matrícula"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title"><i class="fas fa-procedures"></i> Procedimento & Equipe</div>
+            <div class="grid-container">
+                <div class="info-block span-4"><span class="info-label">Procedimento Principal</span><div class="info-value highlight-value" id="vProc"></div></div>
+                <div class="info-block span-2"><span class="info-label">Equipe Cirúrgica</span><div class="info-value" id="vEquipe"></div></div>
+                <div class="info-block"><span class="info-label">Anestesista</span><div class="info-value" id="vAnest"></div></div>
+                <div class="info-block"><span class="info-label">Lado</span><div class="info-value" id="vLado"></div></div>
+                <div class="info-block span-4"><span class="info-label">CID</span><div class="info-value" id="vCid"></div></div>
+            </div>
+
+            <div class="section-title"><i class="fas fa-tasks"></i> Logística, Status & Apoio</div>
+            <div class="grid-container">
+                <div class="info-block"><span class="info-label">Status Atual</span><div class="info-value highlight-value" id="vStatus"></div></div>
+                <div class="info-block"><span class="info-label">CTI?</span><div class="info-value" id="vCti"></div></div>
+                <div class="info-block"><span class="info-label">OPME</span><div class="info-value" id="vOpme"></div></div>
+                <div class="info-block"><span class="info-label">I/A</span><div class="info-value" id="vIA"></div></div>
+                <div class="info-block"><span class="info-label">Origem</span><div class="info-value" id="vOrigem"></div></div>
+                <div class="info-block"><span class="info-label">Marcação Por</span><div class="info-value" id="vMarcacao"></div></div>
+                
+                <div class="info-block span-4">
+                    <span class="info-label">Informações Adicionais (Técnicas) - Clique para editar</span>
+                    <div id="vInfoContainer" class="info-value editable-container" onclick="habilitarEdicaoInfo()">
+                        <span id="vInfo"></span>
+                        <i class="fas fa-pen" style="color:#aaa; font-size:10px; margin-left:auto;"></i>
+                    </div>
+                    <div id="vInfoEditArea" style="display:none; margin-top:5px;">
+                        <textarea id="txtInfoEdit" class="edit-input" rows="3"></textarea>
+                        <div style="text-align:right; margin-top:5px;">
+                            <button type="button" class="btn btn-secondary" onclick="cancelarEdicaoInfo()">Cancelar</button>
+                            <button type="button" class="btn btn-primary" onclick="salvarInfo()">Salvar Info</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title"><i class="fas fa-microscope"></i> Recursos</div>
+            <div class="grid-container">
+                <div class="info-block span-4"><span class="info-label">Instrumentais / Materiais</span><div class="info-value" id="vInstr"></div></div>
+                <div class="info-block span-4"><span class="info-label">Equipamentos Solicitados</span><div class="info-value" id="vEquip"></div></div>
+                <div class="info-block span-4"><span class="info-label">Exames</span><div class="info-value" id="vExames"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
+          
+          <button type="button" class="btn btn-warning" id="btnEditarCompleto" onclick="abrirEdicaoCompleta()" style="display:none;">
+            <i class="fas fa-edit"></i> Editar Tudo
+          </button>
+
+          <button type="submit" class="btn btn-primary" id="btnSave"><i class="fas fa-save"></i> Salvar (Check/Info)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="helpModal">
+    <div class="modal-content" style="width: 600px;"> 
+        <div class="modal-header" style="background:#ebecf0;">
+            <h1 class="modal-title-main"><i class="fas fa-book-reader"></i> Guia do Sistema</h1>
+            <button type="button" class="btn-close" onclick="fecharAjuda()" title="Fechar">&times;</button>
+        </div>
+        <div class="modal-body modal-help-body" id="helpBodyContent">
+            <div style="padding:40px; text-align:center; color:#666;">
+                <div class="spinner"></div> Carregando guia...
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="fecharAjuda()">Fechar</button>
+        </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="anexoModal" style="z-index: 1100;">
+      <div class="modal-content" style="width: 500px; height: auto; max-height: 80vh;">
+          <div class="modal-header">
+              <h3 class="modal-title-main" style="font-size:16px;"><i class="fas fa-folder-open"></i> Documentos do Paciente</h3>
+              <button type="button" class="btn-close" onclick="fecharModalAnexos()">&times;</button>
+          </div>
+          <div class="modal-body" style="padding: 25px;">
+              
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                  <h4 style="margin:0; font-size: 11px; color: #5e6c84; text-transform: uppercase; font-weight:700;">Arquivos na Pasta</h4>
+                  <span style="font-size:10px; color:#999;">Clique no nome para abrir</span>
+              </div>
+
+              <div id="listaAnexos" style="margin-bottom: 25px; border: 1px solid #dfe1e6; border-radius: 6px; min-height: 80px; background: #fafbfc; max-height: 220px; overflow-y:auto;">
+                  <div style="padding:30px; text-align:center; color:#6b778c; font-size:12px; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                      <i class="far fa-folder-open" style="font-size:24px; opacity:0.3;"></i>
+                      <span>Nenhum documento anexado.</span>
+                  </div>
+              </div>
+
+              <div style="border-top: 1px solid #ebecf0; padding-top: 20px; background:#fff;">
+                  <label class="editable-label" style="display:block; margin-bottom:8px; color:#172b4d; font-size:12px;">Selecione um arquivo para enviar:</label>
+                  
+                  <div style="display:flex; gap: 10px; align-items: stretch;">
+                      <input type="file" id="fileInput" class="form-control" style="font-size:12px; padding: 8px; flex: 1; height:auto;">
+                      
+                      <button type="button" class="btn btn-primary" id="btnEnviarAnexo" onclick="uploadArquivo()" 
+                              style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; height: auto; min-height: 38px;">
+                          <i class="fas fa-cloud-upload-alt"></i> <span>Enviar</span>
+                      </button>
+                  </div>
+                  
+                  <div id="uploadStatus" style="font-size:12px; margin-top:10px; min-height:18px; font-weight:600; color:#5e6c84;"></div>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <div class="modal-overlay" id="whatsappModal" style="z-index: 1200;">
+      <div class="modal-content" style="width: 600px; max-height: 90vh;">
+          
+          <div class="modal-header wa-header" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+              <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                  <h3 class="modal-title-main" style="font-size:16px; margin:0;">
+                      <i class="fab fa-whatsapp"></i> Central de Mensagens
+                  </h3>
+                  <button type="button" class="btn-close" onclick="fecharModalWhatsapp()">&times;</button>
+              </div>
+              
+              <div style="width: 100%;">
+                  <select id="waTemplateSelect" class="form-control" style="font-size:13px; color:#333;" onchange="atualizarMensagemWhatsapp()">
+                      </select>
+              </div>
+          </div>
+          
+          <div class="modal-body" style="padding: 20px; background: #e5ddd5;"> 
+              
+              <div id="waMessagesContainer"></div>
+
+              <div style="text-align:center; margin-top: 15px;">
+                  <a id="btnOpenWeb" href="#" target="_blank" class="btn btn-primary" style="background:#25D366; border:none; display:none;">
+                      <i class="fab fa-whatsapp"></i> Abrir Conversa (Se tiver telefone)
+                  </a>
+              </div>
+          </div>
+
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="fecharModalWhatsapp()">Fechar</button>
+          </div>
+      </div>
+  </div>
+
+  <div id="dropdownGuiche" class="status-dropdown" style="display:none;">
+      <div class="status-option" onclick="selecionarStatusGuiche('ok')"><span class="status-dot guiche-ok"></span> OK (Cinza)</div>
+      <div class="status-option" onclick="selecionarStatusGuiche('atencao')"><span class="status-dot guiche-warn"></span> Atenção (Amarelo)</div>
+      <div class="status-option" onclick="selecionarStatusGuiche('erro')"><span class="status-dot guiche-erro"></span> Erro (Vermelho)</div>
+      <div class="status-option" onclick="selecionarStatusGuiche('vazio')"><span class="status-dot guiche-empty"></span> Limpar</div>
+  </div>
+
+  <div id="dropdownAut" class="status-dropdown" style="display:none;">
+      <div class="status-option" onclick="selecionarAut('A')"><span class="status-dot aut-a"></span> Autorizado</div>
+      <div class="status-option" onclick="selecionarAut('P')"><span class="status-dot aut-p"></span> Pendente</div>
+      <div class="status-option" onclick="selecionarAut('U')"><span class="status-dot aut-u"></span> Urgente</div>
+      <div class="status-option" onclick="selecionarAut('N')"><span class="status-dot aut-n"></span> Negado</div>
+      <div class="status-option" onclick="selecionarAut('I')"><span class="status-dot aut-i"></span> Internado</div>
+      <div class="status-option" onclick="selecionarAut('')"><span class="status-dot aut-none"></span> Vazio</div>
+  </div>
+
+  <div id="snackbar"></div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <script>
+    window.onerror = function(msg, url, line) {
+       alert("Erro de Script: " + msg + "\nLinha: " + line);
+       return false;
+    };
+    
+    // CAPTURA SEGURA DA VARIÁVEL DE ADMIN
+    var usuarioEhAdmin = <?= isUserAdmin ? 'true' : 'false' ?>; 
+    usuarioEhAdmin = (usuarioEhAdmin === true); 
+    
+    var abaInicial = "";
+    var listasGlobais = {};
+    var dispInicial = {};
+    
+    try {
+       abaInicial = JSON.parse(document.getElementById('data-aba-inicial').textContent);
+       listasGlobais = JSON.parse(document.getElementById('data-listas').textContent);
+       dispInicial = JSON.parse(document.getElementById('data-disp').textContent);
+    } catch(e) {
+       console.error("Erro ao ler dados iniciais:", e);
+    }
+
+    var anexosAtuais = "";
+    var dadosAtuais = [];
+    var currentModalIndex = -1;
+    var interactingIndex = -1; 
+    var reagObj = {}; 
+    var modoAtual = 'cards';
+    const PX_POR_MINUTO = 2;
+    const HORA_INICIO = 6; 
+
+    window.onload = function() {
+       $('.select2').select2({ width: '100%', placeholder: "...", allowClear: true });
+       
+       if (listasGlobais) {
+           preencherSelect('n_equipe', listasGlobais.equipes);
+           preencherSelect('n_origem', listasGlobais.origens);
+           preencherSelect('n_convenio', listasGlobais.convenios);
+           preencherSelect('n_lado', listasGlobais.lados);
+           preencherSelect('n_ia', listasGlobais.ias);
+           preencherSelect('n_marc', listasGlobais.marcacoes);
+           preencherSelect('n_status', listasGlobais.status);
+           preencherSelect('n_opme', listasGlobais.opme);
+           preencherSelect('n_proc', listasGlobais.procedimentos);
+           preencherSelect('n_mat', listasGlobais.materiais);
+           preencherSelect('n_equip', listasGlobais.equipamentos);
+           preencherSelect('n_exa', listasGlobais.exames);
+           preencherSelect('r_equipe', listasGlobais.equipes);
+       }
+
+       google.script.run.withSuccessHandler(function(guias) {
+         var sel = document.getElementById('guiaSelector');
+         var nGuia = document.getElementById('r_guia_destino');
+         sel.innerHTML = "";
+         if(nGuia) nGuia.innerHTML = '<option value="">Selecione...</option>';
+         
+         if(!guias || guias.length === 0) {
+             var opt = document.createElement("option"); opt.text = "Nenhuma data encontrada"; sel.add(opt); return;
+         }
+         
+         guias.forEach(function(g) {
+             var opt = document.createElement("option"); opt.value = g; opt.text = g;
+             if(g === abaInicial) opt.selected = true; 
+             sel.add(opt);
+             var optR = document.createElement("option"); optR.value = g; optR.text = g;
+             if(nGuia) nGuia.add(optR);
+         });
+
+         if(abaInicial) carregarDia(); else if(guias.length > 0) { sel.value = guias[0]; carregarDia(); }
+       })
+       .withFailureHandler(function(err) {
+           alert("Erro ao carregar lista de guias: " + err.message);
+       })
+       .obterListaGuias();
+
+       document.getElementById('editForm').onsubmit = function(e) { e.preventDefault(); salvarEdicao(); };
+       document.getElementById('formNovo').onsubmit = function(e) { e.preventDefault(); salvarNovo(); };
+       document.getElementById('formReagendar').onsubmit = function(e) { e.preventDefault(); salvarReagendamento(); };
+       
+       setupSalaHora('n_sala', 'n_hora', true);
+       
+       $('#r_guia_destino').on('change', function() {
+           var g = $(this).val();
+           var salaSel = $('#r_sala');
+           salaSel.empty().append('<option>Carregando...</option>').prop('disabled', true);
+           $('#r_hora').empty().prop('disabled', true);
+           
+           if(g) {
+               google.script.run.withSuccessHandler(function(disp) {
+                    salaSel.empty().append('<option value="">Selecione...</option>');
+                    if(!disp) return;
+                    window.dispReag = disp;
+                    Object.keys(disp).forEach(function(s) { salaSel.append(new Option(s, s)); });
+                    salaSel.prop('disabled', false);
+               }).obterDisponibilidadeDaGuia(g);
+           }
+       });
+       
+       $('#r_sala').on('change', function() {
+            var s = $(this).val();
+            var h = $('#r_hora').empty().append('<option value="">Selecione...</option>');
+            if(s && window.dispReag && window.dispReag[s]) {
+                window.dispReag[s].forEach(function(item) { h.append(new Option(item.hora, item.linha)); });
+                h.prop('disabled', false);
+            } else { h.prop('disabled', true); }
+       });
+
+       window.onclick = function(event) {
+          if (!event.target.matches('.badge-aut-modal') && !event.target.matches('.badge-aut') && !event.target.closest('#dropdownAut')) {
+             var d = document.getElementById("dropdownAut");
+             if (d && d.classList.contains('show')) { d.classList.remove('show'); d.style.display = 'none'; }
+          }
+          if (!event.target.matches('.badge-guiche') && !event.target.closest('#dropdownGuiche')) {
+             var g = document.getElementById("dropdownGuiche");
+             if (g && g.classList.contains('show')) { g.style.display = 'none'; g.classList.remove('show'); }
+          }
+           var hm = document.getElementById('helpModal');
+           if (event.target == hm) { fecharAjuda(); }
+           var dm = document.getElementById('detailModal');
+           if (event.target == dm) { fecharModal(); }
+       }
+    };
+
+    function mostrarViewNovo() {
+        $('#n_edit_id').val(""); 
+        $('#n_edit_guia').val("");
+        $('#n_codigo').val(""); // 🔥 Limpa o código
+        $('#view-novo .form-title').html('<i class="fas fa-plus-circle"></i> Novo Agendamento');
+        $('#btnSalvarNovo').html('💾 Salvar Agendamento').removeClass('btn-warning').addClass('btn-primary');
+        $('#formNovo')[0].reset();
+        $('.select2').val(null).trigger('change');
+        $('#n_sala').prop('disabled', true); 
+        $('#n_hora').prop('disabled', true);
+
+        var guiaAtual = document.getElementById('guiaSelector').value;
+        if(guiaAtual) { atualizarDispNovo(guiaAtual); }
+        $('.view-section').removeClass('active');
+        $('#view-novo').addClass('active');
+    }
+    
+    function atualizarDispNovo(guia) {
+        var salaSel = $('#n_sala');
+        salaSel.empty().append('<option>Carregando...</option>').prop('disabled', true);
+        $('#n_hora').empty().prop('disabled', true);
+        google.script.run.withSuccessHandler(function(disp){
+             salaSel.empty().append('<option value="">Selecione...</option>');
+             window.dispNovo = disp;
+             if(disp) {
+                 Object.keys(disp).forEach(function(s) { salaSel.append(new Option(s, s)); });
+                 salaSel.prop('disabled', false);
+             }
+        }).obterDisponibilidadeDaGuia(guia);
+    }
+    
+    function setupSalaHora(idSala, idHora, isNovo) {
+        $('#'+idSala).on('change', function() {
+            var s = $(this).val();
+            var h = $('#'+idHora).empty().append('<option value="">Selecione...</option>');
+            var disp = isNovo ? window.dispNovo : window.dispReag;
+            if(s && disp && disp[s]) {
+                disp[s].forEach(function(item) { h.append(new Option(item.hora, item.linha)); });
+                h.prop('disabled', false);
+            } else { h.prop('disabled', true); }
+        });
+    }
+
+    function voltarDashboard() {
+        $('.view-section').removeClass('active');
+        $('#view-dashboard').addClass('active');
+    }
+
+    function carregarDia() {
+       var guia = document.getElementById('guiaSelector').value;
+       if(!guia) return;
+       voltarDashboard(); 
+       document.getElementById('board').innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Buscando agenda de '+guia+'...</p></div>';
+       document.getElementById('totalCount').innerText = '...';
+       
+       google.script.run
+         .withSuccessHandler(renderizarCards)
+         .withFailureHandler(function(err){
+             document.getElementById('board').innerHTML = '<div class="loading-state" style="color:#d32f2f"><p>Erro: ' + err.message + '</p></div>';
+         })
+         .listarCirurgiasDoDia(guia);
+    }
+
+    function renderizarCards(resposta) {
+       var container = document.getElementById('board');
+       container.innerHTML = "";
+       if(resposta.erro) {
+          container.innerHTML = '<div class="loading-state" style="color:#d32f2f"><i class="fas fa-exclamation-triangle"></i><p>' + resposta.erro + '</p></div>';
+          return;
+       }
+       if(!resposta.cirurgias || resposta.cirurgias.length === 0) {
+          container.innerHTML = '<div class="loading-state"><i class="fas fa-bed fa-2x"></i><p>Nenhuma cirurgia agendada para este dia.</p></div>';
+          document.getElementById('totalCount').innerText = '0';
+          dadosAtuais = [];
+          return;
+       }
+       dadosAtuais = resposta.cirurgias;
+       document.getElementById('totalCount').innerText = resposta.total;
+       atualizarInterfacePrincipal();
+    }
+
+    function alterarModoVisualizacao(modo) {
+        modoAtual = modo;
+        if(modo === 'cards') {
+            document.getElementById('btnViewCards').style.background = '#fff';
+            document.getElementById('btnViewCards').style.border = '1px solid #ccc';
+            document.getElementById('btnViewAgenda').style.background = 'transparent';
+            document.getElementById('btnViewAgenda').style.border = 'none';
+        } else {
+            document.getElementById('btnViewAgenda').style.background = '#fff';
+            document.getElementById('btnViewAgenda').style.border = '1px solid #ccc';
+            document.getElementById('btnViewCards').style.background = 'transparent';
+            document.getElementById('btnViewCards').style.border = 'none';
+        }
+        if(dadosAtuais.length > 0) {
+            atualizarInterfacePrincipal();
+        }
+    }
+
+    function atualizarInterfacePrincipal() {
+        var container = document.getElementById('board');
+        container.innerHTML = "";
+        if(modoAtual === 'cards') {
+             desenharModoCards(container);
+        } else {
+             renderizarAgenda(container);
+        }
+    }
+
+    function desenharModoCards(container) {
+        var grupos = {};
+        dadosAtuais.forEach(function(c) {
+            var area = c.area || "OUTROS";
+            if(!grupos[area]) { grupos[area] = []; }
+            grupos[area].push(c);
+        });
+
+        var ordem = ["BLOCO", "CCA", "HEMODINÂMICA"];
+        for(var key in grupos) { if(ordem.indexOf(key) === -1) ordem.push(key); }
+
+        ordem.forEach(function(nomeGrupo) {
+           var lista = grupos[nomeGrupo];
+           if(lista && lista.length > 0) {
+               var sectionGroup = document.createElement('div');
+               sectionGroup.className = 'area-section-wrapper';
+
+               var groupTitle = document.createElement('div');
+               groupTitle.className = 'area-title';
+               groupTitle.innerHTML = `<i class="fas fa-layer-group"></i> ${nomeGrupo} (${lista.length})`;
+               
+               sectionGroup.appendChild(groupTitle);
+
+               var grid = document.createElement('div');
+               grid.className = 'cards-grid';
+               lista.forEach(function(c) {
+                   var index = dadosAtuais.indexOf(c);
+                   grid.appendChild(criarCardHTML(c, index));
+               });
+               
+               sectionGroup.appendChild(grid);
+               container.appendChild(sectionGroup);
+           }
+        });
+    }
+
+    function renderizarAgenda(container) {
+        var uniqueRooms = Array.from(new Set(dadosAtuais.map(function(c) { return normalizarNomeSala(c.sala); })));
+        uniqueRooms.sort(compararSalas);
+        if(uniqueRooms.length === 0) uniqueRooms = ["Geral"];
+
+        var html = `
+        <div class="agenda-wrapper">
+            <div class="timeline-column">
+                <div style="height:40px; border-bottom:2px solid #dfe1e6; background:#f4f5f7;"></div> 
+                ${gerarHorasHTML()}
+            </div>
+            <div class="rooms-container" id="roomsContainer">
+            </div>
+        </div>`;
+        container.innerHTML = html;
+        var roomsContainer = document.getElementById('roomsContainer');
+
+        uniqueRooms.forEach(function(sala) {
+            var col = document.createElement('div');
+            col.className = 'room-column';
+            col.id = 'room-col-' + sala.replace(/[^a-zA-Z0-9]/g, '-');
+            var header = document.createElement('div');
+            header.className = 'room-header';
+            header.innerText = sala;
+            col.appendChild(header);
+            roomsContainer.appendChild(col);
+        });
+
+        dadosAtuais.forEach(function(c, index) {
+            var salaNormalizada = normalizarNomeSala(c.sala);
+            var colId = 'room-col-' + salaNormalizada.replace(/[^a-zA-Z0-9]/g, '-');
+            var targetCol = document.getElementById(colId);
+
+            if(targetCol) {
+                var minutosInicio = converterHoraParaMinutos(c.hora);
+                var minutosStartAgenda = HORA_INICIO * 60; 
+                var deltaMinutos = minutosInicio - minutosStartAgenda;
+                if(deltaMinutos < 0) deltaMinutos = 0; 
+                var topPx = (deltaMinutos * PX_POR_MINUTO) + 40; 
+                var heightPx = (c.duracao || 60) * PX_POR_MINUTO; 
+
+                var el = document.createElement('div');
+                el.className = 'event-card-agenda';
+                el.style.top = topPx + 'px';
+                el.style.height = heightPx + 'px';
+                el.style.borderLeftColor = c.cor || '#ccc'; 
+                
+                el.title = `🕒 ${c.hora} - ${c.duracao}min\n👤 ${c.paciente}\n👨‍⚕️ ${c.equipe}\n🏥 ${c.procedimento || 'S/ Proc'}\nConv: ${c.convenio || '-'}`;
+                
+                var statusIcon = '';
+                if(c.status && c.status.toUpperCase().includes('CONFIRMADO')) statusIcon = '<i class="fas fa-check-circle" style="color:#36b37e"></i>';
+                else if(c.status && c.status.toUpperCase().includes('CANCELADO')) statusIcon = '<i class="fas fa-times-circle" style="color:#ff5630"></i>';
+
+                el.innerHTML = `
+                    <div class="agenda-card-header">
+                        <span class="agenda-time">${c.hora}</span>
+                        <div style="font-size:10px;">${statusIcon}</div>
+                    </div>
+                    <div class="agenda-patient">${c.paciente}</div>
+                    <div class="agenda-details">
+                        <i class="fas fa-user-md agenda-icon"></i> 
+                        <span>${c.equipe || 'Sem equipe'}</span>
+                    </div>
+                    <div class="agenda-details" style="color:#888;">
+                        <i class="fas fa-procedures agenda-icon"></i>
+                        <span>${c.procedimento ? c.procedimento.substring(0, 20) + (c.procedimento.length>20?'...':'') : '-'}</span>
+                    </div>
+                `;
+                el.onclick = function() { abrirDetalhes(index); };
+                targetCol.appendChild(el);
+            }
+        });
+    }
+
+    function gerarCorClaraSolida(hex) {
+        if(!hex || hex[0] !== '#') return '#f0f0f0'; 
+        var r = parseInt(hex.slice(1, 3), 16);
+        var g = parseInt(hex.slice(3, 5), 16);
+        var b = parseInt(hex.slice(5, 7), 16);
+        var mix = 0.85; 
+        var rN = Math.round(r * (1 - mix) + 255 * mix);
+        var gN = Math.round(g * (1 - mix) + 255 * mix);
+        var bN = Math.round(b * (1 - mix) + 255 * mix);
+        return `rgb(${rN}, ${gN}, ${bN})`;
+    }
+
+    function normalizarNomeSala(nome) {
+    if(!nome) return 'INDEFINIDO';
+    var u = nome.toUpperCase().trim();
+    
+    // Captura exata usando Regex \b (fronteira de palavra)
+    if (/\bCCA\b/.test(u)) return u.replace(/.*CCA/, 'CCA').trim();
+    if (/\bCCV\b/.test(u)) return u.replace(/.*CCV/, 'CCV').trim();
+    
+    if (/\bBC\b|\bBLOCO\b/.test(u)) {
+        var num = u.match(/\d+/);
+        return (num ? num[0] : "") + " BC";
+    }
+    
+    if (/\bHEMO\b/.test(u)) return u.replace(/.*HEMO/, 'HEMODINÂMICA').trim();
+    
+    return u;
+}
+
+    function compararSalas(a, b) {
+        var pesoA = getPesoArea(a);
+        var pesoB = getPesoArea(b);
+        if (pesoA !== pesoB) { return pesoA - pesoB; }
+        var numA = (a.match(/\d+/) || [0])[0];
+        var numB = (b.match(/\d+/) || [0])[0];
+        if (parseInt(numA) > 0 && parseInt(numB) > 0) { return parseInt(numA) - parseInt(numB); }
+        return a.localeCompare(b);
+    }
+
+    function getPesoArea(nome) {
+    var u = nome.toUpperCase();
+    if (/\bBC\b|\bBLOCO\b/.test(u)) return 1;
+    if (/\bCCA\b/.test(u)) return 2;
+    if (/\bHEMO\b/.test(u)) return 3;
+    if (/\bCCV\b/.test(u)) return 4; // CCV por último
+    return 99;
+}
+
+    function gerarHorasHTML() {
+        var html = '';
+        for(var h = HORA_INICIO; h <= 20; h++) { 
+            var horaFormatada = (h < 10 ? '0' : '') + h + ':00';
+            html += `<div class="timeline-hour">${horaFormatada}</div>`;
+        }
+        return html;
+    }
+
+    function converterHoraParaMinutos(horaStr) {
+        if(!horaStr) return 0;
+        var partes = horaStr.split(':');
+        return (parseInt(partes[0]) * 60) + parseInt(partes[1]);
+    }
+
+    function prepararReagendar(index) {
+        var c = dadosAtuais[index];
+        mostrarToast("Carregando dados para reagendamento...");
+        
+        google.script.run.withSuccessHandler(function(res){
+             if(res.valoresOriginais) {
+                 reagObj.valoresOriginais = res.valoresOriginais;
+                 $('#r_lbl_paciente').text(c.paciente);
+                 $('#r_lbl_origem').text(document.getElementById('guiaSelector').value);
+                 $('#r_origemSheet').val(document.getElementById('guiaSelector').value);
+                 $('#r_origemRow').val(c.id);
+                 var blocos = Math.ceil(c.duracao / 30);
+                 $('#r_origemDuracao').val(blocos);
+                 $('#r_paciente').val(c.paciente);
+                 $('#r_matr').val(c.matricula);
+                 $('#r_equipe').val(c.equipe).trigger('change');
+                 $('#r_guia_destino').val("").trigger('change');
+                 $('#r_duracao').val(c.duracao).trigger('change');
+                 $('.view-section').removeClass('active');
+                 $('#view-reagendar').addClass('active');
+             } else {
+                 alert("Erro ao ler dados originais.");
+             }
+        }).carregarDadosParaReagendamento(document.getElementById('guiaSelector').value, c.id);
+    }
+
+    function salvarReagendamento() {
+        var btn = $('#btnSalvarReag');
+        btn.text('Salvando...').prop('disabled', true);
+        var form = {
+           origemSheet: $('#r_origemSheet').val(),
+           origemRow: $('#r_origemRow').val(),
+           origemDuracaoBlocos: $('#r_origemDuracao').val(),
+           guia: $('#r_guia_destino').val(),
+           linhaInicial: $('#r_hora').val(),
+           duracao: $('#r_duracao').val(),
+           paciente: $('#r_paciente').val(),
+           equipe: $('#r_equipe').val(),
+           valoresOriginais: reagObj.valoresOriginais
+        };
+        google.script.run.withSuccessHandler(function(res){
+            if(res.success) {
+                mostrarToast(res.message);
+                voltarDashboard();
+                carregarDia(); 
+            } else { alert("Erro: " + res.message); }
+            btn.text('✅ Confirmar Move').prop('disabled', false);
+        }).executarReagendamento(form);
+    }
+
+    function salvarNovo() {
+        var btn = $('#btnSalvarNovo');
+        var textoOrig = btn.text();
+        btn.text('Processando...').prop('disabled', true);
+
+        var formData = {
+            guia: document.getElementById('guiaSelector').value, 
+            linhaInicial: $('#n_hora').val(),
+            duracao: $('#n_duracao').val(),
+            paciente: $('#n_paciente').val(),
+            codigoPaciente: $('#n_codigo').val(), // 🔥 Coleta o código
+            nascimento: $('#n_nasc').val(),
+            convenio: $('#n_convenio').val(),
+            matricula: $('#n_matr').val(),
+            telefone: $('#n_tel').val(),
+            equipe: $('#n_equipe').val(),
+            anestesista: $('#n_anest').val(),
+            origem: $('#n_origem').val(),
+            procedimentos: $('#n_proc').val(), 
+            lado: $('#n_lado').val(),
+            cid: $('#n_cid').val(),
+            ia: $('#n_ia').val(),
+            marcadoPor: $('#n_marc').val(),
+            materiais: $('#n_mat').val(), 
+            equipamentos: $('#n_equip').val(), 
+            exames: $('#n_exa').val(), 
+            opme: $('#n_opme').val(),
+            status: $('#n_status').val(),
+            outrasInfo: $('#n_info').val(),
+            cti: $('#n_cti').val(),
+            agenda: '', motivo: '', revisao: '', aut: '',
+            idEdicao: $('#n_edit_id').val(),
+            guiaEdicao: $('#n_edit_guia').val()
+        };
+
+        if (formData.idEdicao && formData.idEdicao !== "") {
+            google.script.run.withSuccessHandler(function(res){
+                 if(res.success) {
+                     mostrarToast("✅ Dados atualizados com sucesso!");
+                     voltarDashboard();
+                     carregarDia();
+                 } else { alert("Erro ao editar: " + res.message); }
+                 btn.text(textoOrig).prop('disabled', false);
+            }).atualizarAgendamentoCompleto(formData);
+        } else {
+            google.script.run.withSuccessHandler(function(res){
+                 if(res.success) {
+                     mostrarToast("Agendado com sucesso!");
+                     voltarDashboard();
+                     carregarDia();
+                     $('#formNovo')[0].reset();
+                     $('.select2').val(null).trigger('change');
+                 } else { alert("Erro: " + res.message); }
+                 btn.text(textoOrig).prop('disabled', false);
+            }).processFormData(formData);
+        }
+    }
+
+    function getGuicheHtml(status, index) {
+        var clickAttr = `onclick="toggleDropdownGuiche(event, ${index}, false)"`;
+        var addClass = 'empty'; var content = '';
+        if (status === 'ok') { addClass = 'ok'; content = '<i class="fas fa-check"></i>'; }
+        else if (status === 'atencao') { addClass = 'warn'; content = '<i class="fas fa-exclamation"></i>'; }
+        else if (status === 'erro') { addClass = 'erro'; content = '<i class="fas fa-times"></i>'; }
+        return `<span id="badge-guiche-card-${index}" class="badge-guiche ${addClass}" ${clickAttr} title="Alterar Guichê">${content}</span>`;
+    }
+
+    function toggleDropdownGuiche(event, index, isModal) {
+        event.stopPropagation();
+        var dropdown = document.getElementById("dropdownGuiche");
+        if (!dropdown) return; // BLINDAGEM CONTRA NULL
+
+        if (isModal) { interactingIndex = currentModalIndex; } else { interactingIndex = index; }
+        
+        var rect = event.target.getBoundingClientRect();
+        dropdown.style.position = 'fixed';
+        dropdown.style.top = (rect.bottom + 4) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        dropdown.style.display = 'flex'; 
+        dropdown.classList.add("show");
+    }
+
+    function selecionarStatusGuiche(novoStatus) {
+        if(interactingIndex === -1) return;
+        var c = dadosAtuais[interactingIndex];
+        c.statusGuiche = novoStatus;
+        var addClass = 'empty'; var innerHTML = '';
+        if (novoStatus === 'ok') { addClass = 'ok'; innerHTML = '<i class="fas fa-check"></i>'; }
+        else if (novoStatus === 'atencao') { addClass = 'warn'; innerHTML = '<i class="fas fa-exclamation"></i>'; }
+        else if (novoStatus === 'erro') { addClass = 'erro'; innerHTML = '<i class="fas fa-times"></i>'; }
+
+        var cardBadge = document.getElementById('badge-guiche-card-' + interactingIndex);
+        if (cardBadge) { 
+            cardBadge.className = 'badge-guiche ' + addClass; 
+            cardBadge.innerHTML = innerHTML; 
+        }
+        if (currentModalIndex === interactingIndex) {
+            var mb = document.getElementById('modalGuicheBadge');
+            if(mb) { mb.className = 'badge-guiche ' + addClass; mb.innerHTML = innerHTML; }
+            var mbRec = document.getElementById('recepcaoGuicheBadge');
+            if(mbRec) { mbRec.className = 'badge-guiche ' + addClass; mbRec.innerHTML = innerHTML; }
+        }
+        var d = document.getElementById("dropdownGuiche");
+        if(d) {
+            d.classList.remove("show");
+            d.style.display = 'none';
+        }
+        google.script.run.salvarStatusGuiche(document.getElementById('guiaSelector').value, c.id, novoStatus);
+    }
+
+    function abrirDetalhes(index) {
+        var c = dadosAtuais[index];
+        currentModalIndex = index;
+
+        // --- 1. PREENCHIMENTO DOS DADOS ---
+        $('.has-note-field').removeClass('has-note-field').removeAttr('title');
+
+        setTxt('mNome', c.paciente);
+        setTxt('vCodigo', c.codigoPaciente); // 🔥 Mostra o código
+        
+        anexosAtuais = c.anexos || ""; 
+        atualizarBotaoAnexoVisual(anexosAtuais);
+
+        document.getElementById('editId').value = c.id;
+        document.getElementById('editGuia').value = document.getElementById('guiaSelector').value;
+        document.getElementById('inputEmail').value = c.email || '';
+        document.getElementById('inputObs').value = c.obs || '';
+
+        setTxt('vNasc', c.nasc);
+        setTxt('vTel', c.telefone);
+        setTxt('vConv', c.convenio);
+        setTxt('vMatr', c.matricula);
+        setTxt('vProc', c.procedimento);
+        setTxt('vEquipe', c.equipe);
+        setTxt('vAnest', c.anestesia);
+        setTxt('vLado', c.lado);
+        setTxt('vCid', c.cid);
+        setTxt('vStatus', c.status);
+        setTxt('vCti', c.cti);
+        setTxt('vOpme', c.opme);
+        setTxt('vIA', c.ia);
+        setTxt('vOrigem', c.origem);
+        setTxt('vMarcacao', c.marcacao);
+        setTxt('vInfo', c.info); 
+        setTxt('vInstr', c.instrumentais);
+        setTxt('vEquip', c.equipamentos);
+        setTxt('vExames', c.exames);
+
+        // Notas ocultas
+        if(c.notas) {
+            var mapFields = {
+                'paciente': 'mNome', 'nascimento': 'vNasc', 'telefone': 'vTel',
+                'convenio': 'vConv', 'matricula': 'vMatr', 'procedimento': 'vProc',
+                'equipe': 'vEquipe', 'anestesia': 'vAnest', 'lado': 'vLado',
+                'cid': 'vCid', 'status': 'vStatus', 'cti': 'vCti',
+                'opme': 'vOpme', 'ia': 'vIA', 'origem': 'vOrigem',
+                'marcacao': 'vMarcacao', 'info': 'vInfo', 'materiais': 'vInstr',
+                'equipamentos': 'vEquip', 'exames': 'vExames'
+            };
+            for (var [key, msg] of Object.entries(c.notas)) {
+                 var domId = mapFields[key];
+                 var el = document.getElementById(domId);
+                 if(el) {
+                     el.classList.add('has-note-field');
+                     el.title = "📝 Nota Oculta: " + msg;
+                 }
+            }
+        }
+
+        // Badges e Status
+        var mb = document.getElementById('modalGuicheBadge');
+        if(mb) mb.className = 'badge-guiche'; 
+        var mbRec = document.getElementById('recepcaoGuicheBadge');
+        if(mbRec) mbRec.className = 'badge-guiche';
+
+        var innerHTML = '';
+        if (c.statusGuiche === 'ok') { if(mb) mb.classList.add('ok'); if(mbRec) mbRec.classList.add('ok'); innerHTML = '<i class="fas fa-check"></i>'; }
+        else if (c.statusGuiche === 'atencao') { if(mb) mb.classList.add('warn'); if(mbRec) mbRec.classList.add('warn'); innerHTML = '<i class="fas fa-exclamation"></i>'; }
+        else if (c.statusGuiche === 'erro') { if(mb) mb.classList.add('erro'); if(mbRec) mbRec.classList.add('erro'); innerHTML = '<i class="fas fa-times"></i>'; }
+        else { if(mb) mb.classList.add('empty'); if(mbRec) mbRec.classList.add('empty'); }
+        if(mb) mb.innerHTML = innerHTML;
+        if(mbRec) mbRec.innerHTML = innerHTML;
+
+        atualizarBadgeVisual(document.getElementById('modalAutBadge'), c.aut);
+
+        var recepcaoArea = document.getElementById('recepcaoArea');
+        if(recepcaoArea) recepcaoArea.style.display = 'none';
+        
+        var recepcaoIcon = document.getElementById('recepcaoIcon');
+        if(recepcaoIcon) recepcaoIcon.style.transform = 'rotate(0deg)';
+        
+        cancelarEdicaoInfo();
+
+        // --- 2. ABRE O MODAL ---
+        var modal = document.getElementById('detailModal');
+        if(modal) modal.style.display = 'flex';
+
+        // --- 3. LÓGICA DO BOTÃO ---
+        var btnEdit = document.getElementById('btnEditarCompleto');
+        if(btnEdit) btnEdit.style.display = 'none';
+
+        if (usuarioEhAdmin) {
+            setTimeout(function() {
+                if(btnEdit) {
+                    btnEdit.style.removeProperty('display');
+                    btnEdit.style.setProperty('display', 'inline-flex', 'important');
+                }
+            }, 50);
+        }
+    }
+
+    // --- FUNÇÕES DE ANEXO BLINDADAS ---
+    
+    function abrirAnexosDireto(e, index) {
+        if(e) e.stopPropagation();
+        currentModalIndex = index;
+        abrirModalAnexos();
+    }
+
+    function atualizarBotaoAnexoVisual(strAnexos) {
+        // Função auxiliar mantida caso seja usada por outro modal, mas a lógica do botão do card é separada
+    }
+
+    function abrirModalAnexos() {
+        var m = document.getElementById('anexoModal');
+        if(m) m.style.display = 'flex';
+        
+        // Carrega dados do paciente atual
+        var c = dadosAtuais[currentModalIndex];
+        anexosAtuais = c.anexos || "";
+        
+        renderizarListaAnexos();
+        var status = document.getElementById('uploadStatus');
+        if(status) status.innerText = "";
+        var fileIn = document.getElementById('fileInput');
+        if(fileIn) fileIn.value = "";
+    }
+
+    function fecharModalAnexos() {
+        var m = document.getElementById('anexoModal');
+        if(m) m.style.display = 'none';
+    }
+
+    function renderizarListaAnexos() {
+        var container = document.getElementById('listaAnexos');
+        if(!container) return; 
+        container.innerHTML = "";
+        
+        if (!anexosAtuais || typeof anexosAtuais !== 'string' || anexosAtuais.trim() === "") {
+            container.innerHTML = '<div style="padding:15px; text-align:center; color:#999; font-size:12px;">Nenhum documento anexado.</div>';
+            return;
+        }
+
+        var linhas = anexosAtuais.split('\n');
+        linhas.forEach(function(linha) {
+            if(linha.includes('|')) {
+                var partes = linha.split('|');
+                var nome = partes[0];
+                var url = partes[1];
+                
+                var div = document.createElement('div');
+                div.className = 'upload-list-item';
+                // Adicionamos um ID único para manipular se necessário, mas o principal é o botão de excluir
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                        <i class="fas fa-file-alt" style="color:#5e6c84;"></i>
+                        <a href="${url}" target="_blank" class="upload-link" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px;" title="${nome}">
+                            ${nome}
+                        </a>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <a href="${url}" target="_blank" style="color:#5e6c84;" title="Abrir"><i class="fas fa-external-link-alt"></i></a>
+                        <span onclick="executarDelecaoArquivo('${url}')" style="color:#ff5630; cursor:pointer;" title="Excluir Arquivo (Drive e Planilha)">
+                            <i class="fas fa-trash-alt"></i>
+                        </span>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+        });
+    }
+
+    function executarDelecaoArquivo(url) {
+        if(!confirm("⚠️ ATENÇÃO: Isso excluirá o arquivo do Google Drive e removerá o link deste agendamento.\n\nDeseja continuar?")) {
+            return;
+        }
+
+        var c = dadosAtuais[currentModalIndex];
+        var status = document.getElementById('uploadStatus');
+        if(status) { status.innerText = "Excluindo..."; status.style.color = "orange"; }
+
+        // Bloqueia a lista visualmente enquanto processa
+        var container = document.getElementById('listaAnexos');
+        container.style.opacity = "0.5";
+        container.style.pointerEvents = "none";
+
+        google.script.run.withSuccessHandler(function(res){
+            container.style.opacity = "1";
+            container.style.pointerEvents = "auto";
+
+            if(res.success) {
+                // Atualiza variáveis globais
+                anexosAtuais = res.links;
+                dadosAtuais[currentModalIndex].anexos = res.links;
+                
+                // Re-renderiza
+                renderizarListaAnexos();
+                atualizarBotaoAnexoVisual(res.links);
+                
+                // Atualiza botão do card
+                carregarDia(); // Ou uma atualização mais leve se preferir
+
+                if(status) { status.innerText = "Arquivo excluído!"; status.style.color = "red"; }
+                
+                // Limpa mensagem após 3 seg
+                setTimeout(function(){ if(status) status.innerText = ""; }, 3000);
+            } else {
+                alert("Erro ao excluir: " + res.error);
+                if(status) status.innerText = "";
+            }
+        }).excluirArquivoAnexo(document.getElementById('guiaSelector').value, c.id, url);
+    }
+
+    function uploadArquivo() {
+        var fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length === 0) { alert("Selecione um arquivo primeiro."); return; }
+
+        var file = fileInput.files[0];
+        if (file.size > 5 * 1024 * 1024) { alert("Arquivo muito grande. Limite de 5MB."); return; }
+
+        var reader = new FileReader();
+        var btn = document.getElementById('btnEnviarAnexo');
+        var status = document.getElementById('uploadStatus');
+        
+        btn.disabled = true;
+        status.innerText = "Carregando...";
+        status.style.color = "#0052cc";
+
+        reader.onload = function(e) {
+            var rawData = e.target.result; 
+            var c = dadosAtuais[currentModalIndex]; 
+            
+            var payload = {
+                fileData: rawData,
+                fileName: file.name,
+                mimeType: file.type,
+                guia: document.getElementById('guiaSelector').value,
+                id: c.id,
+                matricula: (c.matricula || "S_Mat").replace(/'/g, ""), 
+                paciente: c.paciente,
+                data: document.getElementById('guiaSelector').value, 
+                procedimento: c.procedimento,
+                equipe: c.equipe
+            };
+
+            google.script.run.withSuccessHandler(function(res){
+                if(res.success) {
+                    anexosAtuais = res.links;
+                    dadosAtuais[currentModalIndex].anexos = res.links;
+                    renderizarListaAnexos();
+                    
+                    // Atualiza o botão visualmente sem recarregar tudo
+                    var btnCard = document.querySelector(`button[onclick="abrirAnexosDireto(event, ${currentModalIndex})"]`);
+                    if(btnCard) {
+                        btnCard.style.background = '#e6fcff';
+                        btnCard.style.color = '#008da6';
+                        btnCard.title = 'Ver Anexos';
+                    }
+
+                    status.innerText = "✅ Sucesso!";
+                    status.style.color = "green";
+                    document.getElementById('fileInput').value = "";
+                } else {
+                    alert("Erro no upload: " + res.error);
+                    status.innerText = "Erro ao enviar.";
+                    status.style.color = "red";
+                }
+                btn.disabled = false;
+            }).processarUploadDrive(payload);
+        };
+        
+        reader.readAsDataURL(file);
+    }
+    
+    function copiarNomeModal() {
+        var nome = document.getElementById('mNome').innerText;
+        copiarTexto(nome);
+    }
+
+    function toggleDropdownAutCard(event, index) {
+        event.stopPropagation();
+        interactingIndex = index;
+        if (index === -1) interactingIndex = currentModalIndex;
+        var dropdown = document.getElementById("dropdownAut");
+        if(!dropdown) return; // BLINDAGEM
+
+        var rect = event.target.getBoundingClientRect();
+        dropdown.style.position = 'fixed';
+        dropdown.style.top = (rect.bottom + 4) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        dropdown.style.display = 'flex'; 
+        dropdown.classList.add("show");
+    }
+    
+    function toggleDropdownAut(event) {
+        toggleDropdownAutCard(event, -1);
+    }
+
+    function criarCardHTML(c, index) {
+    var corBorda = c.cor || '#ccc';
+    var st = c.status || 'Agendado';
+    var statusClass = 'tag-status'; 
+    if(st.toUpperCase().includes('CONFIRMADO')) statusClass = 'tag-team'; 
+    if(st.toUpperCase().includes('CANCELADO')) statusClass = 'tag-conv'; 
+
+    var agendaBadge = (c.agenda && c.agenda.trim() !== '') ? 
+        `<span class="agenda-badge" title="Agenda: ${c.agenda}">${c.agenda}</span>` : '';
+    
+    var noteIcon = (c.notas && Object.keys(c.notas).length > 0) ? 
+        '<i class="fas fa-sticky-note note-indicator" title="Existem notas ocultas nesta cirurgia"></i>' : '';
+
+    var autVal = c.aut ? c.aut.toUpperCase().trim() : '';
+    var autClass = 'aut-none'; var autText = ''; var autTooltip = "Situação da Autorização"; 
+    
+    if(autVal === 'A') { autClass = 'aut-a'; autText = 'A'; autTooltip = "Autorizado"; }
+    else if(autVal === 'P') { autClass = 'aut-p'; autText = 'P'; autTooltip = "Pendente"; }
+    else if(autVal === 'N') { autClass = 'aut-n'; autText = 'N'; autTooltip = "Negado"; }
+    else if(autVal === 'I') { autClass = 'aut-i'; autText = 'I'; autTooltip = "Internado"; }
+    else if(autVal === 'U') { autClass = 'aut-u'; autText = 'U'; autTooltip = "Urgente"; }
+    
+    var autHtml = `<span id="badge-aut-card-${index}" class="badge-aut ${autClass}" onclick="toggleDropdownAutCard(event, ${index})" title="${autTooltip} (Clique para alterar)">${autText}</span>`;
+    var guicheHtml = getGuicheHtml(c.statusGuiche, index);
+
+    var ladoBadge = c.lado ? `<span class="tag tag-lat-s" title="Lateralidade: ${c.lado}">${c.lado[0]}</span>` : ''; 
+    
+    var iaBadge = '';
+    if (c.ia) {
+        var txtIA = c.ia.toUpperCase();
+        var clsIA = 'tag-ia-default'; 
+        var showIA = c.ia.substring(0,4); 
+        var tooltipIA = "I/A: " + c.ia; 
+
+        if (txtIA.indexOf('AMBU') > -1) { clsIA = 'tag-ia-ambu'; showIA = 'Ambu'; }
+        else if (txtIA.indexOf('DIA') > -1) { clsIA = 'tag-ia-dia'; showIA = 'Dia'; }
+        else if (txtIA.indexOf('ANTE') > -1) { clsIA = 'tag-ia-vesp'; showIA = 'ANTE'; }
+        else if (txtIA.indexOf('VÉSPERA') > -1 || txtIA.indexOf('VESPERA') > -1) { clsIA = 'tag-ia-vesp'; showIA = 'Vesp'; }
+        else if (txtIA.indexOf('CLÍNICA') > -1 || txtIA.indexOf('CLIN') > -1) { clsIA = 'tag-ia-clin'; showIA = 'Clin'; }
+        else if (txtIA.indexOf('INTERNADO') > -1 || txtIA.indexOf('INTER') > -1) { clsIA = 'tag-ia-inter'; showIA = 'Inter'; }
+
+        iaBadge = `<span class="tag ${clsIA}" title="${tooltipIA}">${showIA}</span>`;
+    }
+
+    var opmeClass = c.opmeBold ? 'tag-opme tag-opme-checked' : 'tag-opme';
+    var opmeTooltip = c.opmeBold ? "OPME: Solicitado (Confirmado)" : "OPME: Solicitado";
+    var opmeBadge = (c.opme && c.opme.toUpperCase() === 'SIM') ? 
+        `<span class="tag ${opmeClass}" ondblclick="alternarOpme(event, ${index})" title="${opmeTooltip}">${c.opmeBold ? 'OPME' : 'OPME'}</span>` : '';
+        
+    var origemBadge = c.origem ? `<span class="tag tag-origem" title="Origem: ${c.origem}">${c.origem}</span>` : '';
+    var convenioBadge = c.convenio ? `<span class="tag tag-conv" title="Convênio: ${c.convenio}">${c.convenio || 'Part.'}</span>` : '<span class="tag tag-conv">Part.</span>';
+
+    var equipeBadge = c.equipe ? `<span class="tag tag-team" title="Equipe Médica"><i class="fas fa-user-md"></i><span style="margin:0 4px">${c.equipe}</span></span>` : '';
+
+    var salaNome = c.sala || '';
+    var numeroSalaMatch = salaNome.match(/\d+/); 
+    var numeroSalaTag = '';
+    var nomeSalaRestante = salaNome;
+
+    if (numeroSalaMatch) {
+        var numero = numeroSalaMatch[0];
+        numeroSalaTag = `<span class="sala-numero-tag">${numero}</span>`;
+        nomeSalaRestante = salaNome;
+    } else {
+         numeroSalaTag = '<span class="sala-numero-tag"><i class="fas fa-door-open"></i></span>';
+    }
+
+    // --- ESTILO DO BOTÃO DE ANEXO ---
+    var temAnexo = (c.anexos && c.anexos.length > 0);
+    var btnAnexoStyle = temAnexo ? 'background:#e6fcff; color:#008da6; border-color:#b3f5ff;' : 'background:#f4f5f7; color:#5e6c84;';
+    var btnAnexoTitle = temAnexo ? 'Ver Anexos' : 'Anexar';
+
+    // --- PREPARAÇÃO DO NOME E BOTÃO DE COPIAR CÓDIGO ---
+    var btnCopyNome = `<i class="far fa-copy btn-copy" onclick="copiarTexto('${c.paciente.replace(/'/g, "\\'")}', event)" title="Copiar Nome"></i>`;
+    
+    var codigoBadge = '';
+    if (c.codigoPaciente && c.codigoPaciente.trim() !== '') {
+         codigoBadge = `<span style="color:#0052cc; font-size:11px; margin-left:8px; font-weight:800; background:#e9f2ff; padding:2px 6px; border-radius:4px; border:1px solid #b3d4ff;">#${c.codigoPaciente}</span> 
+                        <i class="far fa-copy btn-copy" style="font-size:13px; padding:2px; margin-left:2px;" onclick="copiarTexto('${c.codigoPaciente.trim()}', event)" title="Copiar Código"></i>`;
+    }
+
+    var div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+         <div class="color-strip" style="background-color: ${corBorda}"></div>
+         <div class="card-header">
+            <div style="display:flex; align-items:center; gap: 8px;">
+                ${numeroSalaTag}
+                <span class="sala-nome-texto" title="${c.sala}">${nomeSalaRestante}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap: 8px;">
+                ${guicheHtml} 
+                <span><i class="far fa-clock"></i> ${c.hora}</span>
+                ${agendaBadge}
+                ${autHtml}
+                ${noteIcon}
+            </div>
+         </div>
+         <div class="card-body">
+            <div class="patient-name" title="${c.paciente}">
+                <span class="name-text">${c.paciente} ${btnCopyNome} ${codigoBadge}</span>
+            </div>
+            <div class="procedure-text" title="${c.procedimento || ''}">${c.procedimento || '-'}</div>
+            <div class="tags-container">
+                <div class="row-equipe">${equipeBadge}</div>
+                <div class="row-tags-extras">
+                    <span class="tag ${statusClass}" title="Status: ${st}">${st}</span>
+                    ${iaBadge} ${ladoBadge} ${opmeBadge} ${convenioBadge} ${origemBadge}
+                </div>
+            </div>
+            <div class="card-actions">
+                <button class="btn-card-main" onclick="abrirDetalhes(${index})">Ver Detalhes</button>
+                
+                <button class="btn-card-icon" style="${btnAnexoStyle}" onclick="abrirAnexosDireto(event, ${index})" title="${btnAnexoTitle}">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                
+                <button class="btn-whatsapp-icon" onclick="abrirModalWhatsapp(event, ${index})" title="Gerar Checklist WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                </button>
+
+                <button class="btn-card-icon" title="Reagendar" onclick="prepararReagendar(${index})"><i class="fas fa-exchange-alt"></i></button>
+            </div>
+         </div>`;
+    return div;
+}
+    
+    function preencherSelect(id, arr) { var s = $('#'+id); s.append(new Option("","")); if(arr) arr.forEach(function(x){ s.append(new Option(x,x)); }); }
+    function fecharModal() { var m = document.getElementById('detailModal'); if(m) m.style.display = 'none'; currentModalIndex = -1; }
+    function copiarTexto(t,e) { if(e)e.stopPropagation(); navigator.clipboard.writeText(t); mostrarToast("Copiado!"); }
+    function mostrarToast(m) { var x=document.getElementById("snackbar"); if(!x)return; x.innerText=m; x.className="show"; setTimeout(function(){x.className=x.className.replace("show","");},3000); }
+    function setTxt(id, val) { var el = document.getElementById(id); if(el) el.innerText = (val === undefined || val === null || val === "") ? '-' : val; }
+
+    function toggleDropdownAut() { var d=document.getElementById("dropdownAut"); if(d) d.classList.toggle("show"); }
+    
+    function selecionarAut(n) { 
+        if(interactingIndex === -1 && currentModalIndex !== -1) interactingIndex = currentModalIndex;
+        if(interactingIndex === -1) return;
+        var c = dadosAtuais[interactingIndex]; 
+        c.aut = n; 
+        if (currentModalIndex === interactingIndex) atualizarBadgeVisual(document.getElementById('modalAutBadge'),n);
+        var cardBadge = document.getElementById('badge-aut-card-' + interactingIndex);
+        if(cardBadge) atualizarBadgeVisual(cardBadge, n);
+        var d = document.getElementById("dropdownAut");
+        if(d) {
+            d.classList.remove("show");
+            d.style.display = 'none';
+        }
+        google.script.run.salvarAut(document.getElementById('guiaSelector').value, c.id, n);
+    }
+
+    function atualizarBadgeVisual(el, status) {
+        if(!el) return;
+        el.className = el.className.replace(/aut-[a-z]+/g, ''); 
+        if (el.id === 'modalAutBadge') el.classList.add('badge-aut-modal'); else el.classList.add('badge-aut');
+        var s = status ? status.toUpperCase() : '';
+        el.innerText = s;
+        if(s === 'A') el.classList.add('aut-a'); 
+        else if(s === 'P') el.classList.add('aut-p');
+        else if(s === 'N') el.classList.add('aut-n'); 
+        else if(s === 'I') el.classList.add('aut-i');
+        else if(s === 'U') el.classList.add('aut-u'); 
+        else el.classList.add('aut-none');
+    }
+
+    function alternarOpme(e, idx) {
+        e.stopPropagation(); var c = dadosAtuais[idx]; c.opmeBold = !c.opmeBold;
+        if(c.opmeBold) e.target.classList.add('tag-opme-checked'); else e.target.classList.remove('tag-opme-checked');
+        google.script.run.alternarOpmeBold(document.getElementById('guiaSelector').value, c.id, c.opmeBold);
+    }
+    
+    function alternarAut(e, idx) {
+        var c = dadosAtuais[idx]; var novo = getProximoAut(c.aut); c.aut = novo;
+        atualizarBadgeVisual(e.target, novo);
+        google.script.run.salvarAut(document.getElementById('guiaSelector').value, c.id, novo);
+    }
+    function getProximoAut(a) { a = a ? a.toUpperCase().trim() : ''; if(a==='')return 'P'; if(a==='P')return 'A'; if(a==='A')return 'N'; if(a==='N')return 'I'; if(a==='I')return 'U'; if(a==='U')return ''; return ''; }
+
+    function salvarEdicao() {
+        var btn = document.getElementById('btnSave'); var orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
+        var formObj = { guia: document.getElementById('editGuia').value, id: document.getElementById('editId').value, email: document.getElementById('inputEmail').value, obs: document.getElementById('inputObs').value };
+        google.script.run.withSuccessHandler(function(res) {
+           if(res.success) { 
+               var item = dadosAtuais.find(x => x.id === parseInt(formObj.id)); if(item) { item.email = formObj.email; item.obs = formObj.obs; }
+               mostrarToast("Salvo!"); fecharModal(); 
+           } else { alert("Erro: " + res.message); }
+           btn.innerHTML = orig; btn.disabled = false;
+        }).salvarEdicaoRapida(formObj);
+    }
+
+    function salvarInfo() {
+        var id = document.getElementById('editId').value;
+        var guia = document.getElementById('editGuia').value;
+        var texto = document.getElementById('txtInfoEdit').value;
+        
+        google.script.run.withSuccessHandler(function(res){
+             if(res.success) {
+                 var item = dadosAtuais.find(x => x.id == id);
+                 if(item) item.info = texto;
+                 setTxt('vInfo', texto);
+                 cancelarEdicaoInfo();
+                 mostrarToast("Info salva!");
+             } else {
+                 alert("Erro: " + res.message);
+             }
+        }).salvarInfoTecnica(guia, id, texto);
+    }
+
+    function toggleRecepcao() { var el=document.getElementById('recepcaoArea'); var ic=document.getElementById('recepcaoIcon'); if(el.style.display==='block'){el.style.display='none';ic.style.transform='rotate(0deg)';}else{el.style.display='block';ic.style.transform='rotate(180deg)';}}
+    function habilitarEdicaoInfo() { document.getElementById('vInfoContainer').style.display='none'; document.getElementById('vInfoEditArea').style.display='block'; document.getElementById('txtInfoEdit').value = document.getElementById('vInfo').innerText; }
+    function cancelarEdicaoInfo() { document.getElementById('vInfoContainer').style.display='flex'; document.getElementById('vInfoEditArea').style.display='none'; }
+
+    function abrirAjuda() {
+        var m = document.getElementById('helpModal');
+        if(m) m.style.display = 'flex';
+        var corpo = document.getElementById('helpBodyContent');
+        if (corpo && corpo.getAttribute('data-loaded') === 'true') return;
+        google.script.run.withSuccessHandler(function(html) {
+            if(corpo) {
+                corpo.innerHTML = html;
+                corpo.setAttribute('data-loaded', 'true');
+            }
+        }).obterConteudoAjuda();
+    }
+
+    function fecharAjuda() {
+        var m = document.getElementById('helpModal');
+        if(m) m.style.display = 'none';
+    }
+    
+    function toggleHelp(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+        } 
+        else if (typeof id === 'object' && id.nextElementSibling) {
+             var content = id.nextElementSibling;
+             content.style.display = (content.style.display === 'block') ? 'none' : 'block';
+        }
+    }
+
+    // --- LÓGICA DO WHATSAPP ---
+    
+    // Variável global para guardar o paciente focado no modal do Whats
+    var currentWaIndex = -1;
+
+    function abrirModalWhatsapp(e, index) {
+        if(e) e.stopPropagation();
+        currentWaIndex = index; // Salva o índice para usar na troca de template
+        var c = dadosAtuais[index];
+        
+        // 1. Preencher o Select de Templates (apenas na primeira vez ou sempre pra garantir)
+        var select = document.getElementById('waTemplateSelect');
+        if (select.options.length === 0 && window.DB_MENSAGENS) {
+            for (var key in window.DB_MENSAGENS) {
+                var opt = document.createElement('option');
+                opt.value = key;
+                opt.text = window.DB_MENSAGENS[key].titulo;
+                select.add(opt);
+            }
+        }
+        
+        // Reseta para o padrão ao abrir
+        select.value = "checklist_padrao";
+
+        // 2. Renderiza a mensagem
+        atualizarMensagemWhatsapp();
+
+        // 3. Configura Botão Link
+        var btnLink = document.getElementById('btnOpenWeb');
+        if (c.telefone) {
+            var nums = c.telefone.replace(/\D/g, ''); 
+            if(nums.length >= 10) {
+                if(!nums.startsWith('55')) nums = '55' + nums;
+                btnLink.href = `https://wa.me/${nums}`;
+                btnLink.style.display = 'inline-flex';
+            } else { btnLink.style.display = 'none'; }
+        } else { btnLink.style.display = 'none'; }
+
+        document.getElementById('whatsappModal').style.display = 'flex';
+    }
+
+    function atualizarMensagemWhatsapp() {
+        if(currentWaIndex === -1) return;
+        var c = dadosAtuais[currentWaIndex];
+        var key = document.getElementById('waTemplateSelect').value;
+        var template = window.DB_MENSAGENS[key];
+        var container = document.getElementById('waMessagesContainer');
+        
+        container.innerHTML = ""; // Limpa mensagens anteriores
+
+        if (!template || !template.mensagens) return;
+
+        // --- CÁLCULO DE DATAS ---
+        var nomeGuia = document.getElementById('guiaSelector').value;
+        var dataProcStr = extrairData(nomeGuia); 
+        var horaProcedimento = c.hora;
+        
+        // Lógica ANTE/VESP
+        var iaTexto = (c.ia || "").toUpperCase();
+        var dataChegadaStr = dataProcStr;
+        var horaChegadaStr = calcularHoraChegada(c.hora, 2);
+
+        if (iaTexto.includes("ANTE")) {
+            dataChegadaStr = subtrairDiasDaData(dataProcStr, 2);
+            horaChegadaStr = "14:30";
+        } else if (iaTexto.includes("VESP") || iaTexto.includes("VÉSP")) {
+            dataChegadaStr = subtrairDiasDaData(dataProcStr, 1);
+            horaChegadaStr = "14:00";
+        }
+
+        // Função processadora
+        var processarTexto = function(texto) {
+            return texto
+                .replace(/{{PACIENTE}}/g, c.paciente || "")
+                .replace(/{{MATRICULA}}/g, c.matricula || "")
+                .replace(/{{DATA_PROC}}/g, dataProcStr)
+                .replace(/{{HORA_PROC}}/g, horaProcedimento)
+                .replace(/{{DATA_CHEGADA}}/g, dataChegadaStr)
+                .replace(/{{HORA_CHEGADA}}/g, horaChegadaStr)
+                .replace(/{{CONVENIO}}/g, c.convenio || "")
+                .replace(/{{EQUIPE}}/g, c.equipe || "");
+        };
+
+        // --- GERAR CAIXAS DINAMICAMENTE ---
+        template.mensagens.forEach(function(msgRaw, index) {
+            var textoFinal = processarTexto(msgRaw);
+            var idArea = 'waMsgDynamic_' + index;
+            
+            var divBox = document.createElement('div');
+            divBox.className = 'whatsapp-message-box';
+            divBox.innerHTML = `
+                <div style="font-size:11px; font-weight:700; color:#5e6c84; margin-bottom:5px; text-transform:uppercase;">
+                    Mensagem ${index + 1}
+                </div>
+                <textarea id="${idArea}" class="whatsapp-text-area">${textoFinal}</textarea>
+                <button class="btn-copy-float" onclick="copiarTextoZap('${idArea}')">
+                    <i class="far fa-copy"></i> Copiar
+                </button>
+            `;
+            container.appendChild(divBox);
+            
+            // 🔥 REMOVIDO O CÓDIGO DE AUTO-HEIGHT AQUI
+            // O CSS agora cuida da rolagem interna
+        });
+    }
+
+    function subtrairDiasDaData(dataStr, diasParaSubtrair) {
+        if (!dataStr || dataStr.includes("CONFIRMAR")) return dataStr;
+        
+        try {
+            var partes = dataStr.split('/'); // [dia, mes, ano]
+            // Nota: Mês em JS começa em 0 (Janeiro = 0)
+            var dataObj = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+            
+            // Subtrai os dias
+            dataObj.setDate(dataObj.getDate() - diasParaSubtrair);
+            
+            var d = dataObj.getDate().toString().padStart(2, '0');
+            var m = (dataObj.getMonth() + 1).toString().padStart(2, '0');
+            var a = dataObj.getFullYear();
+            
+            return `${d}/${m}/${a}`;
+        } catch (e) {
+            console.error("Erro ao calcular data anterior:", e);
+            return dataStr; // Retorna original se der erro
+        }
+    }
+
+    function fecharModalWhatsapp() {
+        document.getElementById('whatsappModal').style.display = 'none';
+    }
+
+    function copiarTextoZap(idElemento) {
+        var copyText = document.getElementById(idElemento);
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); // Para mobile
+        navigator.clipboard.writeText(copyText.value).then(function() {
+            mostrarToast("✅ Texto copiado!");
+        });
+    }
+
+    // Helpers de Data/Hora
+    function extrairData(textoGuia) {
+        // Tenta achar DD/MM no texto da guia (Ex: "TERÇA 24/01")
+        var match = textoGuia.match(/(\d{1,2})\/(\d{1,2})/);
+        var ano = new Date().getFullYear(); // Assume ano atual
+        if(match) {
+            return `${match[1]}/${match[2]}/${ano}`;
+        }
+        return "DATA A CONFIRMAR";
+    }
+
+    function calcularHoraChegada(horaProc, horasAntes) {
+        if(!horaProc) return "??:??";
+        try {
+            var partes = horaProc.split(':');
+            var h = parseInt(partes[0]);
+            var m = parseInt(partes[1]);
+            
+            var data = new Date();
+            data.setHours(h);
+            data.setMinutes(m);
+            
+            // Subtrai horas
+            data.setHours(data.getHours() - horasAntes);
+            
+            var hFinal = data.getHours().toString().padStart(2, '0');
+            var mFinal = data.getMinutes().toString().padStart(2, '0');
+            return `${hFinal}:${mFinal}`;
+        } catch(e) {
+            return "??:??";
+        }
+    }
+
+  </script>
+</body>
+</html>
